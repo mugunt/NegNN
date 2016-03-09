@@ -110,7 +110,7 @@ if __name__=="__main__":
             })
 
     # store results for epoch
-    folder = os.path.join("/Users/ffancellu/git/is13/log/test",params['logf'])
+    folder = os.path.join("",params['logf'])
     if not os.path.exists(folder): os.mkdir(folder)
 
     train_set, valid_set, test_set, dic = load(args.p)
