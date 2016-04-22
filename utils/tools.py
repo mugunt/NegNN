@@ -1,4 +1,18 @@
+from itertools import islice
+
 import random
+import tensorflow as tf
+import cPickle
+import numpy as np
+
+def load(fname):
+    '''fname:: file name of the pickled dict where data is stored
+    returns a tuple containing training, dev, test sets and word2idx
+    dictionaries'''
+
+    with open(fname,'rb') as f:
+        train_set, valid_set, test_set, dicts = cPickle.load(f)
+    return train_set, valid_set, test_set, dicts
 
 def shuffle(lol, seed):
     '''
@@ -26,7 +40,7 @@ def minibatch(l, bs):
     assert len(l) == len(out)
     return out
 
-def contextwin(l, win):
+def contextwin(l, win, flag, idx=None):
     '''
     win :: int corresponding to the size of the window
     given a list of indexes composing a sentence
@@ -37,9 +51,39 @@ def contextwin(l, win):
     assert win >=1
     l = list(l)
 
-    lpadded = win/2 * [-1] + l + win/2 * [-1]
-    out = [ lpadded[i:i+win] for i in range(len(l)) ]
+    if flag == "cue":
+        lpadded = win/2 * [0] + l + win/2 * [0]
+    else:
+        lpadded = win/2 * [idx] + l + win/2 * [idx]
+    out = [lpadded[i:i+win] for i in range(len(l))]
 
     assert len(out) == len(l)
     return out
 
+def contextwin_lr(l, win_left, win_right, flag, idx=None):
+    '''
+    win :: int corresponding to the size of the window
+    given a list of indexes composing a sentence
+    it will return a list of list of indexes corresponding
+    to context windows surrounding each word in the sentence
+    '''
+
+    l = list(l)
+
+    if flag == "cue":
+        lpadded = win_left * [0] + l + win_right * [0]
+    else:
+        lpadded = win_left * [idx] + l + win_right * [idx]
+    # print lpadded
+    out = [lpadded[i:i+win_right+win_left+1] for i in range(len(l))]
+
+    assert len(out) == len(l)
+    return out
+
+def padding(l,max_len,pad_idx,x=True):
+    if x: pad = [pad_idx]*(max_len-len(l))
+    else: pad = [[0,1]]*(max_len-len(l))
+    return np.concatenate((l,pad),axis=0)
+
+def random_uniform(shape,name,low=-1.0,high=1.0):
+    return  tf.Variable(0.2 * tf.random_uniform(shape, minval=low, maxval=high, dtype=tf.float32),name=name)
