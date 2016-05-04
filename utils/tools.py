@@ -85,5 +85,9 @@ def padding(l,max_len,pad_idx,x=True):
     else: pad = [[0,1]]*(max_len-len(l))
     return np.concatenate((l,pad),axis=0)
 
-def random_uniform(shape,name,low=-1.0,high=1.0):
-    return  tf.Variable(0.2 * tf.random_uniform(shape, minval=low, maxval=high, dtype=tf.float32),name=name)
+def random_uniform(shape,name,low=-1.0,high=1.0,update=True):
+    return  tf.Variable(0.2 * tf.random_uniform(shape, minval=low, maxval=high, dtype=tf.float32),name=name,trainable=update)
+
+def unpickle_data(folder):
+   with open(os.path.join(folder,'train_dev.pkl'),'wb') as f:
+        return cPickle.load(f)

@@ -1,7 +1,7 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
 
-from NegNN.birnn.reader.conll2obj import Data
+from NegNN.bilstm.reader.conll2obj import Data
 from collections import Counter
 from itertools import chain
 from argparse import ArgumentParser
@@ -31,7 +31,7 @@ def load_train_dev(scope,event,lang,out_dir):
     words_idxs, tags_idxs, tags_uni_idxs, cues_idxs, scopes_idxs, labels_idxs = build_input_data(voc, sents, tags, tags_uni, cues, scopes, labels)
 
     # package
-    data = package_data(words_idxs, tags_idxs, tags_uni_idxs, cues_idxs, scopes_idxs, labels_idxs, voc, voc_inv, lengths)
+    data = package_data_train_dev(words_idxs, tags_idxs, tags_uni_idxs, cues_idxs, scopes_idxs, labels_idxs, voc, voc_inv, lengths)
 
     # pickle data
     pickle_data(out_dir, data)

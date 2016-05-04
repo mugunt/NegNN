@@ -1,7 +1,7 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
 
-from NegNN.birnn.reader.conll2obj import Data
+from NegNN.bilstm.reader.conll2obj import Data
 import codecs
 
 # try different data formats

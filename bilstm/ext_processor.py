@@ -1,6 +1,6 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
-from NegNN.birnn.reader.conll2obj import Data
+from NegNN.bilstm.reader.conll2obj import Data
 from common import data2sents
 
 import numpy as np
@@ -73,11 +73,11 @@ def load_train_dev(scope, event, lang, emb_dim, universal):
         pre_t_emb = pad_embeddings(pre_t_emb,emb_dim)
 
         if universal == 1:
-            tags_idxs = [np.array([get_index(t,pre_t_voc, pre_t_emb.shape[0]) for t in tag_sent],dtype=np.int32) for tag_sent in tags_uni]
+            tags_idxs = [np.array([get_index(t,pre_t_voc, pre_t_emb.shape[0]) for t in tag_sent],dtype=np.int32) for tag_sent in tags]
         elif universal == 2:
             tags_idxs = [np.array([get_index(t,pre_t_voc, pre_t_emb.shape[0]) for t in tag_sent],dtype=np.int32) for tag_sent in tags_uni]
 
-        train_tags,valid_tags = tags_idxs[:lengths[0]], tags_idxs[lengths[0]:]
+        train_tags, valid_tags = tags_idxs[:lengths[0]], tags_idxs[lengths[0]:]
 
         train_set = train_lex, train_tags, train_tags, train_cues, train_scope,train_y
         valid_set = valid_lex, valid_tags, valid_tags, valid_cues, valid_scope, valid_y
