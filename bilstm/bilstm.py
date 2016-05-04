@@ -25,9 +25,9 @@ def _bilstm(scope_dect,
     max_sent_len,
     pre_training,
     update,
-    training = True,
-    test_files = None,
-    test_lang = None):
+    training,
+    test_files,
+    test_lang):
     
     if training:
         # load data
@@ -44,15 +44,15 @@ def _bilstm(scope_dect,
     else:      
         # Load data
         if not pre_training:
-            assert FLAGS.test_lang == training_lang
+            assert test_lang == tr_lang
             _, _, voc, _ = unpickle_data()
-            test_lex, _, _, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_detection, event_detection, FLAGS.test_lang)
+            test_lex, _, _, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, test_lang)
         else:
-            test_set, voc_inv, pre_emb_w, _ = ext_processor.load_test(test_files, scope_detection, event_detection, FLAGS.test_lang, embedding_dim, POS_emb)
+            test_set, dic_inv, pre_emb_w, _ = ext_processor.load_test(test_files, scope_dect, event_dect, test_lang, emb_size, POS_emb)
             test_lex, _, _, test_cue, _, test_y = test_set
 
-        if pre_training: voc_size = pre_emb_w.shape[0]
-        else: voc_size = len(voc['w2idxs'])
+        if pre_training: vocsize = pre_emb_w.shape[0]
+        else: vocsize = len(voc['w2idxs'])
 
 # **************************************************************************
 
@@ -68,14 +68,17 @@ def _bilstm(scope_dect,
     y = tf.placeholder("float", [None, n_classes],name="y")
 
     # Define weights
-    _weights = {
-        # Hidden layer weights => 2*n_hidden because of foward + backward cells
-        'w_emb' : random_uniform([vocsize, emb_size],'w_emb',update),
+    with tf.device("/cpu:0"):
+        _weights = {
+            # Hidden layer weights => 2*n_hidden because of foward + backward cells
+            'w_emb' : random_uniform([vocsize, emb_size],'w_emb',update)
+        }
+    _weights.update({
         'c_emb' : random_uniform([3,emb_size],'c_emb'),
         'hidden_w': random_uniform([emb_size, 2*n_hidden],'hidden_w'),
         'hidden_c': random_uniform([emb_size, 2*n_hidden],'hidden_c'),
         'out_w': random_uniform([2*n_hidden, n_classes],'out_w')
-    }
+    })
     _biases = {
         'hidden_b': tf.Variable(tf.random_normal([2*n_hidden]),name='hidden_b'),
         'out_b': tf.Variable(tf.random_normal([n_classes]),name="out_b")
@@ -84,7 +87,9 @@ def _bilstm(scope_dect,
     def BiRNN(_X, _C, _istate_fw, _istate_bw, _weights, _biases):
         # input: a [len_sent,len_seq] (e.g. 7x5)
         # transform into embeddings
-        emb_x = tf.nn.embedding_lookup(_weights['w_emb'],_X)
+        with tf.device("/cpu:0"):
+            emb_x = tf.nn.embedding_lookup(_weights['w_emb'],_X)
+
         emb_c = tf.nn.embedding_lookup(_weights['c_emb'],_C)
 
         # Linear activation
@@ -139,10 +144,11 @@ def _bilstm(scope_dect,
             acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
             return acc_test, pred , Y
 
+    saver = tf.train.Saver(tf.all_variables())
     # Launch the session  
     with tf.Session() as sess:
         if training:
-            saver = tf.train.Saver(tf.all_variables())
+            # saver = tf.train.Saver(tf.all_variables())
             optimizer = tf.train.AdamOptimizer(lr).minimize(cost) # Adam Optimizer
             sess.run(tf.initialize_all_variables())
             if pre_training:
@@ -155,11 +161,11 @@ def _bilstm(scope_dect,
                 train_tot_acc = []
                 dev_tot_acc = []
                 tic = time.time()
-                for i in xrange(len(train_lex)):
+                for i in xrange(len(train_lex[:100])):
                     acc_train = feeder(train_lex[i],train_cue[i],train_y[i])
                     # Calculating batch accuracy
                     train_tot_acc.append(acc_train)
-                    print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex)),'completed in %.2f (sec) <<\r'%(time.time()-tic),
+                    print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex[:100])),'completed in %.2f (sec) <<\r'%(time.time()-tic),
                     sys.stdout.flush()               
                 print "TRAINING MEAN ACCURACY: ", sum(train_tot_acc)/len(train_lex)
                 # DEVELOPMENT STEP
@@ -195,17 +201,16 @@ def _bilstm(scope_dect,
         else:
             # load model from last checkpoint
             checkpoint_file = tf.train.latest_checkpoint(folder)
-            saver = tf.train.Saver(tf.all_variables())
             saver.restore(sess, checkpoint_file)
             print "Model restored!"
             # Collect the predictions here
             test_tot_acc = []
             pred_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
-                acc_test, pred_test, Y_test = feeder(test_lex[i], test_cue[i], test_y[i], train = False)
+                acc_test, pred, Y_test = feeder(test_lex[i], test_cue[i], test_y[i], train = False)
                 test_tot_acc.append(acc_test)
                 # get prediction softmax
-                pred_test.append(pred_test[:len(test_lex[i])])
+                pred_test.append(pred[:len(test_lex[i])])
                 gold_test.append(Y_test[:len(test_lex[i])])
             print 'Mean test accuracy: ', sum(test_tot_acc)/len(test_lex)
             _,report_tst,best_test = get_eval(pred_test,gold_test)

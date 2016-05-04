@@ -25,9 +25,9 @@ def _bilstm(scope_dect,
     POS_emb,
     pre_training,
     update,
-    training = True,
-    test_files = None,
-    test_lang = None):
+    training,
+    test_files,
+    test_lang):
     
     if training:
         # load data
@@ -74,14 +74,17 @@ def _bilstm(scope_dect,
     y = tf.placeholder("float", [None, n_classes],name="y")
 
     # Define weights
-    _weights = {
-        'w_emb' : random_uniform([vocsize, emb_size],'w_emb',update),
-        'c_emb' : random_uniform([3,emb_size],'c_emb'),
-        't_emb' : random_uniform([tag_voc_size,emb_size],'t_emb',update),
+    with tf.device("/cpu:0"):
+        _weights = {
+            'w_emb' : random_uniform([vocsize, emb_size],'w_emb',update),
+            't_emb' : random_uniform([tag_voc_size,emb_size],'t_emb',update)
+            }
+
+    _weights.update({'c_emb' : random_uniform([3,emb_size],'c_emb'),
         'hidden_w': random_uniform([emb_size, 2*n_hidden],'hidden_w'),
         'hidden_c': random_uniform([emb_size, 2*n_hidden],'hidden_c'),
         'out_w': random_uniform([2*n_hidden, n_classes],'out_w')
-    }
+    })
     _biases = {
         'hidden_b': tf.Variable(tf.random_normal([2*n_hidden]),name='hidden_b'),
         'out_b': tf.Variable(tf.random_normal([n_classes]),name="out_b")
@@ -90,9 +93,11 @@ def _bilstm(scope_dect,
     def BiLSTM(_X, _C, _T, _istate_fw, _istate_bw, _weights, _biases):
         # input: a [len_sent,len_seq] (e.g. 7x5)
         # transform into embeddings
-        emb_x = tf.nn.embedding_lookup(_weights['w_emb'],_X)
+        with tf.device("/cpu:0"):
+            emb_x = tf.nn.embedding_lookup(_weights['w_emb'],_X)   
+            emb_t = tf.nn.embedding_lookup(_weights['t_emb'],_T)
+
         emb_c = tf.nn.embedding_lookup(_weights['c_emb'],_C)
-        emb_t = tf.nn.embedding_lookup(_weights['t_emb'],_T)
 
         # Linear activation
         _X = tf.matmul(emb_x, self._weights['hidden_w']) + tf.matmul(emb_c, self._weights['hidden_c']) + tf.matmul(emb_t,self._weights['hidden_t']) + self._biases['hidden_b']
@@ -147,6 +152,7 @@ def _bilstm(scope_dect,
             acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
             return acc_test, pred , Y
 
+    saver = tf.train.Saver()
     # Launch the session  
     with tf.Session() as sess:
         if training:
@@ -175,7 +181,7 @@ def _bilstm(scope_dect,
                 pred_dev = []
                 gold_dev = []
                 for i in xrange(len(valid_lex)):
-                    acc_dev, pred, Y_dev = feeder(valid_lex[i],valid_cue[i],valid_tags[i] if POS_emb == 1 else valid_tags_uni[i]valid_y[i],train=False)
+                    acc_dev, pred, Y_dev = feeder(valid_lex[i],valid_cue[i],valid_tags[i] if POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
                     dev_tot_acc.append(acc_dev)
                     pred_dev.append(pred[:len(valid_lex[i])])
                     gold_dev.append(Y_dev[:len(valid_lex[i])])
@@ -203,15 +209,15 @@ def _bilstm(scope_dect,
 
         else:
             # load model from last checkpoint
-            checkpoint_file = tf.train.latest_checkpoint(folder)
-            saver = tf.train.Saver(tf.all_variables())
-            saver.restore(sess, checkpoint_file)
+            # checkpoint_file = tf.train.latest_checkpoint(folder)
+            
+            saver.restore(sess, '/Users/ffancellu/git/runs/PRE0_bi/checkpoints/model-26')
             print "Model restored!"
             # Collect the predictions here
             test_tot_acc = []
             pred_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
-                acc_test, pred_test, Y_test = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i]test_y[i], train = False)
+                acc_test, pred_test, Y_test = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False)
                 test_tot_acc.append(acc_test)
                 # get prediction softmax
                 pred_test.append(pred_test[:len(test_lex[i])])

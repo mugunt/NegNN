@@ -1,10 +1,10 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
 
-from bilstm import BiLSTM
 from random import shuffle
 from NegNN.utils.tools import shuffle,padding
 from NegNN.utils.metrics import *
+import bilstm, bilstm_tags
 import tensorflow as tf
 import numpy as np
 import codecs
@@ -45,16 +45,21 @@ max_sent_length = int(model_flags['max_sent_length'])
 num_hidden = int(model_flags['num_hidden'])
 emb_update = str2bool(model_flags['emb_update'])
 training_lang = model_flags['training_lang']
+learning_rate = model_flags['learning_rate']
+nepochs = model_flags['num_epochs']
 
 test_files = FLAGS.test_set.split(',')
 
 if POS_emb == 0:
+    print "The case is 0"
     bilstm._bilstm(scope_dect = scope_detection,
             event_dect = event_detection,
             tr_lang = training_lang,
+            clr = learning_rate,
             folder = FLAGS.checkpoint_dir,
             n_hidden = num_hidden,
             n_classes = num_classes,
+            nepochs = nepochs,
             emb_size = embedding_dim,
             POS_emb = POS_emb,
             max_sent_len = max_sent_length,
@@ -63,13 +68,16 @@ if POS_emb == 0:
             training = False,
             test_files = test_files,
             test_lang = FLAGS.test_lang)
+
 else:
-    bilstm._bilstm(scope_dect = scope_detection,
+    bilstm_tags._bilstm(scope_dect = scope_detection,
             event_dect = event_detection,
             tr_lang = training_lang,
+            clr = learning_rate,
             folder = FLAGS.checkpoint_dir,
             n_hidden = num_hidden,
             n_classes = num_classes,
+            nepochs = nepochs,
             emb_size = embedding_dim,
             POS_emb = POS_emb,
             max_sent_len = max_sent_length,

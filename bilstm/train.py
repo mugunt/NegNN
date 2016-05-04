@@ -5,7 +5,7 @@ from random import shuffle
 from NegNN.utils.metrics import *
 
 # from NegNN.bilstm.bilstm_obj import BiLSTM
-import bilstm
+import bilstm, bilstm_tags
 import tensorflow as tf
 import numpy as np
 import sys,os
@@ -69,9 +69,12 @@ if FLAGS.POS_emb == 0:
             POS_emb = FLAGS.POS_emb,
             max_sent_len = FLAGS.max_sent_length,
             update = FLAGS.emb_update,
-            pre_training = FLAGS.pre_training)
+            pre_training = FLAGS.pre_training,
+            training = True,
+            test_files = None,
+            test_lang = None)
 else:
-    bilstm._bilstm(scope_dect = FLAGS.scope_detection,
+    bilstm_tags._bilstm(scope_dect = FLAGS.scope_detection,
             event_dect = FLAGS.event_detection,
             tr_lang = FLAGS.training_lang,
             folder = checkpoint_dir,
@@ -83,4 +86,7 @@ else:
             POS_emb = FLAGS.POS_emb,
             max_sent_len = FLAGS.max_sent_length,
             update = FLAGS.emb_update,
-            pre_training = FLAGS.pre_training)
+            pre_training = FLAGS.pre_training,
+            training = True,
+            test_files = None,
+            test_lang = None)
