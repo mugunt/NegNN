@@ -112,13 +112,13 @@ def _bilstm(scope_dect,
         _X = tf.split(0,max_sent_len,_X)
 
         # Get lstm cell output
-        outputsn = rnn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, _X,initial_state_fw = _istate_fw, initial_state_bw=_istate_bw,sequence_length = seq_len)
+        outputs = rnn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, _X,initial_state_fw = _istate_fw, initial_state_bw=_istate_bw,sequence_length = seq_len)
 
-        return outputsn
+        return outputs
 
-    lstm_out = BiLSTM(x, c, t, istate_fw, istate_bw, _weights, _biases)
+    pred = BiLSTM(x, c, t, istate_fw, istate_bw, _weights, _biases)
 
-    last_y = [tf.matmul(iteml, _weights['out_w']) + _biases['out_b'] for iteml in lstm_out]
+    last_y = [tf.matmul(item, _weights['out_w']) + _biases['out_b'] for item in pred]
     final_outputs = tf.squeeze(tf.pack(last_y))
 
     # Define cost
@@ -135,7 +135,7 @@ def _bilstm(scope_dect,
         C = padding(cue, max_sent_len, 2)
         T = padding(tags, max_sent_len, tag_voc_size - 1)
         Y = padding(numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32'),max_sent_len,0,False)
-        _mask = [1 if t!=vocsize - 1 else 0 for t in X]
+        _mask = [1 if token!=vocsize - 1 else 0 for token in X]
         feed_dict={
             x: X,
             c: C,
