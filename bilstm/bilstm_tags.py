@@ -76,11 +76,12 @@ def _bilstm(scope_dect,
     # Define weights
     with tf.device("/cpu:0"):
         _weights = {
-            'w_emb' : random_uniform([vocsize, emb_size],'w_emb',update),
-            't_emb' : random_uniform([tag_voc_size,emb_size],'t_emb',update)
+            'w_emb' : random_uniform([vocsize, emb_size],'we',update),
+            't_emb' : random_uniform([tag_voc_size,emb_size],'te',update)
             }
 
-    _weights.update({'c_emb' : random_uniform([3,emb_size],'c_emb'),
+    _weights.update({
+        'c_emb' : random_uniform([3,emb_size],'ce'),
         'hidden_w': random_uniform([emb_size, 2*n_hidden],'hidden_w'),
         'hidden_c': random_uniform([emb_size, 2*n_hidden],'hidden_c'),
         'hidden_t': random_uniform([emb_size, 2*n_hidden],'hidden_t'),
@@ -95,10 +96,9 @@ def _bilstm(scope_dect,
         # input: a [len_sent,len_seq] (e.g. 7x5)
         # transform into embeddings
         with tf.device("/cpu:0"):
-            emb_x = tf.nn.embedding_lookup(_weights['w_emb'],_X)   
+            emb_x = tf.nn.embedding_lookup(_weights['w_emb'],_X)
             emb_t = tf.nn.embedding_lookup(_weights['t_emb'],_T)
-
-        emb_c = tf.nn.embedding_lookup(_weights['c_emb'],_C)
+            emb_c = tf.nn.embedding_lookup(_weights['c_emb'],_C)
 
         # Linear activation
         _X = tf.matmul(emb_x, _weights['hidden_w']) + tf.matmul(emb_c, _weights['hidden_c']) + tf.matmul(emb_t,_weights['hidden_t']) + _biases['hidden_b']
@@ -112,13 +112,13 @@ def _bilstm(scope_dect,
         _X = tf.split(0,max_sent_len,_X)
 
         # Get lstm cell output
-        outputs = rnn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, _X,initial_state_fw = _istate_fw, initial_state_bw=_istate_bw,sequence_length = seq_len)
+        outputsn = rnn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, _X,initial_state_fw = _istate_fw, initial_state_bw=_istate_bw,sequence_length = seq_len)
 
         return outputs
 
-    pred = BiLSTM(x, c, t, istate_fw, istate_bw, _weights, _biases)
+    lstm_out = BiLSTM(x, c, t, istate_fw, istate_bw, _weights, _biases)
 
-    last_y = [tf.matmul(item, _weights['out_w']) + _biases['out_b'] for item in pred]
+    last_y = [tf.matmul(iteml, _weights['out_w']) + _biases['out_b'] for iteml in lstm_out]
     final_outputs = tf.squeeze(tf.pack(last_y))
 
     # Define cost
