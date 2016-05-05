@@ -83,6 +83,7 @@ def _bilstm(scope_dect,
     _weights.update({'c_emb' : random_uniform([3,emb_size],'c_emb'),
         'hidden_w': random_uniform([emb_size, 2*n_hidden],'hidden_w'),
         'hidden_c': random_uniform([emb_size, 2*n_hidden],'hidden_c'),
+        'hidden_t': random_uniform([emb_size, 2*n_hidden],'hidden_t'),
         'out_w': random_uniform([2*n_hidden, n_classes],'out_w')
     })
     _biases = {
