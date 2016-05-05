@@ -66,7 +66,7 @@ def load_train_dev(scope, event, lang, emb_dim, universal):
     train_cues,valid_cues = cues_idxs[:lengths[0]], cues_idxs[lengths[0]:]
     train_scope,valid_scope = scope_idxs[:lengths[0]], scope_idxs[lengths[0]:]
     train_y,valid_y = y_idxs[:lengths[0]], y_idxs[lengths[0]:]
-
+    
     if universal in [1,2]:
         pre_t_emb, pre_t_voc, pre_t_voc_inv = load_tags(universal)
         # pad embedding with an <UNK> and a <PAD> vector

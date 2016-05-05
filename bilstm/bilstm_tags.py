@@ -36,7 +36,7 @@ def _bilstm(scope_dect,
             vocsize = len(dic['w2idxs']) + 1
             tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
         else:
-            train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, 0)
+            train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, POS_emb)
             vocsize = pre_emb_w.shape[0]
             tag_voc_size = pre_emb_t.shape[0]
 

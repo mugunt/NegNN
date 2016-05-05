@@ -35,7 +35,7 @@ def _bilstm(scope_dect,
             train_set, valid_set, dic, dic_inv = int_processor.load_train_dev(scope_dect, event_dect, tr_lang, folder)
             vocsize = len(dic['w2idxs']) + 1
         else:
-            train_set, valid_set, dic_inv, pre_emb_w, _ = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, 0)
+            train_set, valid_set, dic_inv, pre_emb_w, _ = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, POS_emb)
             vocsize = pre_emb_w.shape[0]
 
         train_lex, _, _, train_cue, train_scope, train_y = train_set
