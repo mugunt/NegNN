@@ -100,7 +100,7 @@ def _bilstm(scope_dect,
         emb_c = tf.nn.embedding_lookup(_weights['c_emb'],_C)
 
         # Linear activation
-        _X = tf.matmul(emb_x, self._weights['hidden_w']) + tf.matmul(emb_c, self._weights['hidden_c']) + tf.matmul(emb_t,self._weights['hidden_t']) + self._biases['hidden_b']
+        _X = tf.matmul(emb_x, _weights['hidden_w']) + tf.matmul(emb_c, _weights['hidden_c']) + tf.matmul(emb_t,_weights['hidden_t']) + _biases['hidden_b']
 
         # Define lstm cells with tensorflow
         # Forward direction cell
