@@ -114,7 +114,7 @@ def _bilstm(scope_dect,
         # Get lstm cell output
         outputsn = rnn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, _X,initial_state_fw = _istate_fw, initial_state_bw=_istate_bw,sequence_length = seq_len)
 
-        return outputs
+        return outputsn
 
     lstm_out = BiLSTM(x, c, t, istate_fw, istate_bw, _weights, _biases)
 
