@@ -161,11 +161,11 @@ def _bilstm(scope_dect,
                 train_tot_acc = []
                 dev_tot_acc = []
                 tic = time.time()
-                for i in xrange(len(train_lex[:100])):
+                for i in xrange(len(train_lex)):
                     acc_train = feeder(train_lex[i],train_cue[i],train_y[i])
                     # Calculating batch accuracy
                     train_tot_acc.append(acc_train)
-                    print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex[:100])),'completed in %.2f (sec) <<\r'%(time.time()-tic),
+                    print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex)),'completed in %.2f (sec) <<\r'%(time.time()-tic),
                     sys.stdout.flush()               
                 print "TRAINING MEAN ACCURACY: ", sum(train_tot_acc)/len(train_lex)
                 # DEVELOPMENT STEP
