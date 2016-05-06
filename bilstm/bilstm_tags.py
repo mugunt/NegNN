@@ -223,7 +223,7 @@ def _bilstm(scope_dect,
                 preds_test.append(pred_test[:len(test_lex[i])])
                 gold_test.append(Y_test[:len(test_lex[i])])
             print 'Mean test accuracy: ', sum(test_tot_acc)/len(test_lex)
-            _,report_tst,best_test = get_eval(pred_test,gold_test)
+            _,report_tst,best_test = get_eval(preds_test,gold_test)
 
             write_report(folder,report_tst,best_test,'test')
-            store_prediction(folder, test_lex, dic_inv, pred_test, gold_test, 'test')                    
+            store_prediction(folder, test_lex, dic_inv, preds_test, gold_test, 'test')                    
