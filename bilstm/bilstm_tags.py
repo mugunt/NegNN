@@ -210,9 +210,8 @@ def _bilstm(scope_dect,
 
         else:
             # load model from last checkpoint
-            # checkpoint_file = tf.train.latest_checkpoint(folder)
-            
-            saver.restore(sess, '/Users/ffancellu/git/runs/PRE0_bi/checkpoints/model-26')
+            checkpoint_file = tf.train.latest_checkpoint(folder)
+            saver.restore(sess,)
             print "Model restored!"
             # Collect the predictions here
             test_tot_acc = []
