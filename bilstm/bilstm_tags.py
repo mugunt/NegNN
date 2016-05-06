@@ -215,12 +215,12 @@ def _bilstm(scope_dect,
             print "Model restored!"
             # Collect the predictions here
             test_tot_acc = []
-            pred_test, gold_test = [],[]
+            preds_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
                 acc_test, pred_test, Y_test = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False)
                 test_tot_acc.append(acc_test)
                 # get prediction softmax
-                pred_test.append(pred_test[:len(test_lex[i])])
+                preds_test.append(pred_test[:len(test_lex[i])])
                 gold_test.append(Y_test[:len(test_lex[i])])
             print 'Mean test accuracy: ', sum(test_tot_acc)/len(test_lex)
             _,report_tst,best_test = get_eval(pred_test,gold_test)
