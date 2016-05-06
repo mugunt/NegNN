@@ -47,10 +47,10 @@ def _bilstm(scope_dect,
         # Load data
         if not pre_training:
             assert FLAGS.test_lang == training_lang
-            _, _, voc, _ = unpickle_data()
-            test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, test_lang)
+            _, _, dic, dic_inv = unpickle_data()
+            test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, dic, scope_dect, event_dect, test_lang)
         else:
-            test_set, voc_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, test_lang, emb_size, POS_emb)
+            test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, test_lang, emb_size, POS_emb)
             test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
 
         if pre_training:
