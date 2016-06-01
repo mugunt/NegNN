@@ -45,7 +45,7 @@ def _bilstm(scope_dect,
         # Load data
         if not pre_training:
             assert test_lang == tr_lang
-            _, _, voc, _ = unpickle_data()
+            _, _, voc, _ = unpickle_data(os.path.join(folder,'train_dev.pkl'))
             test_lex, _, _, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, test_lang)
         else:
             test_set, dic_inv, pre_emb_w, _ = ext_processor.load_test(test_files, scope_dect, event_dect, test_lang, emb_size, POS_emb)
@@ -84,7 +84,7 @@ def _bilstm(scope_dect,
         'out_b': tf.Variable(tf.random_normal([n_classes]),name="out_b")
     }
 
-    def BiRNN(_X, _C, _istate_fw, _istate_bw, _weights, _biases):
+    def BiLSTM(_X, _C, _istate_fw, _istate_bw, _weights, _biases):
         # input: a [len_sent,len_seq] (e.g. 7x5)
         # transform into embeddings
         with tf.device("/cpu:0"):
@@ -92,7 +92,6 @@ def _bilstm(scope_dect,
 
         emb_c = tf.nn.embedding_lookup(_weights['c_emb'],_C)
 
-        # Linear activation
         _X = tf.matmul(emb_x, _weights['hidden_w']) + tf.matmul(emb_c,_weights['hidden_c']) + _biases['hidden_b']
 
         # Define lstm cells with tensorflow
@@ -109,7 +108,7 @@ def _bilstm(scope_dect,
         return outputs
 
     # pred = BiRNN(x, c, istate_fw, istate_bw, _weights, _biases)
-    pred = BiRNN(x, c, istate_fw, istate_bw, _weights, _biases)
+    pred = BiLSTM(x, c, istate_fw, istate_bw, _weights, _biases)
 
     last_y = [tf.matmul(item, _weights['out_w']) + _biases['out_b'] for item in pred]
     final_outputs = tf.squeeze(tf.pack(last_y))
