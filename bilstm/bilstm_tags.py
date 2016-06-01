@@ -33,7 +33,7 @@ def _bilstm(scope_dect,
         # load data
         if not pre_training:
             train_set, valid_set, voc, dic_inv = int_processor.load_train_dev(scope_dect, event_dect, tr_lang, folder)
-            vocsize = len(voc['w2idxs']) + 1
+            vocsize = len(voc['w2idxs'])
             tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
         else:
             train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, POS_emb)
