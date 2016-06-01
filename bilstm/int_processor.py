@@ -71,8 +71,8 @@ def build_vocab(sents, tags, tags_uni, labels,lengths):
 
 def build_input_data(voc, sents, tags, tags_uni, cues, scopes, labels):
 
-    words_idxs = [np.array([voc['w2idxs'][w] for w in sent if w in voc['w2idxs'] else voc['w2idxs']["<UNK>"]],dtype=np.int32) for sent in sents]
-    
+    words_idxs = [np.array([voc['w2idxs'][w] if w in voc['w2idxs'] else voc['w2idxs']["<UNK>"] for w in sent],dtype=np.int32) for sent in sents]
+
     tags_idxs = [np.array([voc['t2idxs'][t] for t in tag_sent],dtype=np.int32) for tag_sent in tags]
     tags_uni_idxs = [np.array([voc['tuni2idxs'][tu] for tu in tag_sent_uni],dtype=np.int32) for tag_sent_uni in tags_uni]
     y_idxs = [np.array([voc['y2idxs'][y] for y in y_array],dtype=np.int32) for y_array in labels]
