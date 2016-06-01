@@ -4,6 +4,7 @@ import random
 import tensorflow as tf
 import cPickle
 import numpy as np
+import os
 
 def load(fname):
     '''fname:: file name of the pickled dict where data is stored
