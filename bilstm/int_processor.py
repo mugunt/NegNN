@@ -56,7 +56,7 @@ def build_vocab(sents, tags, tags_uni, labels,lengths):
 
     w2idxs = token2idx(Counter(chain(*sents)))
     # add <UNK> token
-    w2idxs['<UNK>'] = max(token2idx.values())+1
+    w2idxs['<UNK>'] = max(w2idxs.values())+1
     t2idxs = token2idx(Counter(chain(*tags)))
     tuni2idxs= token2idx(Counter(chain(*tags_uni)))
     y2idxs = {'I':0,'O':1,'E':2}
