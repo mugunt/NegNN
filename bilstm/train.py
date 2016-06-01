@@ -47,7 +47,7 @@ def store_config(_dir,flags):
 fold_name = "%s%s_%d%s" % ('PRE' if FLAGS.pre_training else "noPRE",
 'upd' if FLAGS.pre_training and FLAGS.emb_update else '',
 FLAGS.POS_emb,str(int(time.time())))
-out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", fold_name))
+out_dir = os.path.abspath(os.path.join(os.path.curdir, "NegNN","runs", fold_name))
 print "Writing to {}\n".format(out_dir)
 
 # Set checkpoint directory
