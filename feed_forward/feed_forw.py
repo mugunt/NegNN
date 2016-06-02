@@ -58,20 +58,21 @@ def ff(scope_dect,
 
     WIN_LEFT = 9, # number of words in the context window to the left
     WIN_RIGHT = 16, # number of words in the context window to the right
+    WIN_LEN = WIN_LEFT + WIN_RIGHT + 1
 
     word_emb = random_uniform([vocsize,emb_size],'word_emb')
     cue_emb = random_uniform([2,emb_size],'cue_emb')
     # WIN_LEFT + WIN_RIGHT + 1 plus 1 because it has to include the target word
-    Wx = random_uniform([emb_size * (WIN_LEFT + WIN_RIGHT + 1),n_hidden],'Wx')
-    Wc = random_uniform([emb_size * (WIN_LEFT + WIN_RIGHT + 1),n_hidden],"Wc")
+    Wx = random_uniform([emb_size * WIN_LEN, n_hidden],'Wx')
+    Wc = random_uniform([emb_size * WIN_LEN, n_hidden],"Wc")
     W = random_uniform([n_hidden, n_classes],"W")
     b = tf.Variable(tf.zeros([n_hidden]),'b')
     bo = tf.Variable(tf.zeros([n_classes]),'bo')
 
     # setting the variables
     lr = tf.placeholder(tf.float32)
-    x = tf.placeholder(tf.int32, shape=[None, WIN_LEFT + WIN_RIGHT + 1], name='input_x')
-    c = tf.placeholder(tf.int32, shape=[None, WIN_LEFT + WIN_RIGHT + 1], name='input_c')
+    x = tf.placeholder(tf.int32, shape=[None, WIN_LEN], name='input_x')
+    c = tf.placeholder(tf.int32, shape=[None, WIN_LEN], name='input_c')
     y_ = tf.placeholder(tf.float32, shape=[None, n_classes], name='input_y')
 
 
@@ -81,8 +82,8 @@ def ff(scope_dect,
         emb_x = tf.nn.embedding_lookup(word_emb,rsh_x)
         emb_c = tf.nn.embedding_lookup(cue_emb,rsh_c)
 
-    emb_x_rsh = tf.reshape(emb_x,[-1,emb_size * ( WIN_LEFT + WIN_RIGHT + 1)])
-    emb_c_rsh = tf.reshape(emb_c,[-1,emb_size * ( WIN_LEFT + WIN_RIGHT + 1)])
+    emb_x_rsh = tf.reshape(emb_x,[-1,emb_size * WIN_LEN])
+    emb_c_rsh = tf.reshape(emb_c,[-1,emb_size * WIN_LEN])
 
     y = tf.nn.softmax(tf.matmul(tf.sigmoid(tf.matmul(emb_x_rsh,Wx) + tf.matmul(emb_c_rsh,Wc) + b), W) + bo)
 
