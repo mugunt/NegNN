@@ -110,7 +110,7 @@ def ff(scope_dect,
         feed_dict={
             x: X,
             c: C,
-            y: Y}
+            y_: Y}
         if train:
             feed_dict.update({lr:clr})
             _, acc_train = sess.run([optimizer, accuracy], feed_dict = feed_dict)
