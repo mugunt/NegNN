@@ -56,8 +56,8 @@ def ff(scope_dect,
 
 # **************************************************************************
 
-    WIN_LEFT = 9, # number of words in the context window to the left
-    WIN_RIGHT = 16, # number of words in the context window to the right
+    WIN_LEFT = 9 # number of words in the context window to the left
+    WIN_RIGHT = 16 # number of words in the context window to the right
     WIN_LEN = WIN_LEFT + WIN_RIGHT + 1
 
     word_emb = random_uniform([vocsize,emb_size],'word_emb')
