@@ -45,7 +45,7 @@ def _bilstm(scope_dect,
         # Load data
         if not pre_training:
             assert test_lang == tr_lang
-            _, _, voc, _ = unpickle_data(folder)
+            _, _, voc, dic_inv = unpickle_data(folder)
             test_lex, _, _, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, test_lang)
         else:
             test_set, dic_inv, pre_emb_w, _ = ext_processor.load_test(test_files, scope_dect, event_dect, test_lang, emb_size, POS_emb)
