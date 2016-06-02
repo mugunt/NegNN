@@ -116,10 +116,10 @@ def ff(scope_dect,
             _, acc_train = sess.run([optimizer, accuracy], feed_dict = feed_dict)
             return acc_train
         else:
-            # acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
-            # return acc_test, pred , Y
-            acc_test = sess.run(accuracy, feed_dict = feed_dict)
-            return acc_test, Y
+            acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
+            return acc_test, pred , Y
+            # acc_test = sess.run(accuracy, feed_dict = feed_dict)
+            # return acc_test, Y
 
     saver = tf.train.Saver(tf.all_variables())
     # Launch the session  
@@ -149,10 +149,10 @@ def ff(scope_dect,
                 pred_dev = []
                 gold_dev = []
                 for i in xrange(len(valid_lex)):
-                    acc_dev, Y_dev = feeder(valid_lex[i],valid_cue[i],valid_y[i],train=False)
+                    acc_dev, pred, Y_dev = feeder(valid_lex[i],valid_cue[i],valid_y[i],train=False)
                     dev_tot_acc.append(acc_dev)
-                    # pred_dev.append(pred[:len(valid_lex[i])])
-                    # gold_dev.append(Y_dev[:len(valid_lex[i])])
+                    pred_dev.append(pred[:len(valid_lex[i])])
+                    gold_dev.append(Y_dev[:len(valid_lex[i])])
                 print 'DEV MEAN ACCURACY: ',sum(dev_tot_acc)/len(valid_lex)
                 f1,rep_dev,cm_dev = get_eval(pred_dev,gold_dev)
                 # STORE INTERMEDIATE RESULTS
@@ -165,7 +165,7 @@ def ff(scope_dect,
                     saver.save(sess, checkpoint_prefix,global_step=be)
                     print "Model saved."
                     write_report(folder,rep_dev,cm_dev,'dev')
-                    # store_prediction(folder, valid_lex, dic_inv, pred_dev, gold_dev, 'dev')
+                    store_prediction(folder, valid_lex, dic_inv, pred_dev, gold_dev, 'dev')
                     dry = 0
                 else:
                     dry += 1
@@ -184,13 +184,13 @@ def ff(scope_dect,
             test_tot_acc = []
             pred_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
-                acc_test, Y_test = feeder(test_lex[i], test_cue[i], test_y[i], train = False)
+                acc_test, pred, Y_test = feeder(test_lex[i], test_cue[i], test_y[i], train = False)
                 test_tot_acc.append(acc_test)
                 # get prediction softmax
-                # pred_test.append(pred[:len(test_lex[i])])
-                # gold_test.append(Y_test[:len(test_lex[i])])
+                pred_test.append(pred[:len(test_lex[i])])
+                gold_test.append(Y_test[:len(test_lex[i])])
             print 'Mean test accuracy: ', sum(test_tot_acc)/len(test_lex)
             _,report_tst,best_test = get_eval(pred_test,gold_test)
 
             write_report(folder,report_tst,best_test,'test')
-            # store_prediction(folder, test_lex, dic_inv, pred_test, gold_test, 'test')
+            store_prediction(folder, test_lex, dic_inv, pred_test, gold_test, 'test')
