@@ -29,7 +29,7 @@ def ff_tags(scope_dect,
     test_files,
     test_lang):
 
-    # if training:
+    if training:
         # load data
         if not pre_training:
             train_set, valid_set, voc, dic_inv = int_processor.load_train_dev(scope_dect, event_dect, tr_lang, folder)
@@ -39,7 +39,7 @@ def ff_tags(scope_dect,
             train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, POS_emb)
             vocsize = pre_emb_w.shape[0]
             tag_voc_size = pre_emb_t.shape[0]
-
+        print "tag_voc_size is: ",tag_voc_size
         train_lex, train_tags, train_tags_uni, train_cue, _, train_y = train_set
         valid_lex, valid_tags, valid_tags_uni, valid_cue, _, valid_y = valid_set
 
@@ -68,7 +68,7 @@ def ff_tags(scope_dect,
 
     word_emb = random_uniform([vocsize,emb_size],'word_emb')
     cue_emb = random_uniform([2,emb_size],'cue_emb')
-    tag_emb = random_uniform([ntags,emb_size],'tag_emb')
+    tag_emb = random_uniform([tag_voc_size,emb_size],'tag_emb')
     # WIN_LEFT + WIN_RIGHT + 1 plus 1 because it has to include the target word
     Wx = random_uniform([emb_size * WIN_LEN, n_hidden],'Wx')
     Wc = random_uniform([emb_size * WIN_LEN, n_hidden],"Wc")
@@ -130,7 +130,8 @@ def ff_tags(scope_dect,
             _, acc_train = sess.run([optimizer, accuracy], feed_dict = feed_dict)
             return acc_train
         else:
-            acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
+            acc_test, pred = sess.run([accuracy,prediction], feed_dict = feed_dict)
+            pred = numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],pred)).astype('int32')
             return acc_test, pred , Y
             # acc_test = sess.run(accuracy, feed_dict = feed_dict)
             # return acc_test, Y
@@ -144,7 +145,8 @@ def ff_tags(scope_dect,
             sess.run(tf.initialize_all_variables())
             if pre_training:
                 sess.run(word_emb.assign(pre_emb_w))
-            best_f1 = 0.0
+                sess.run(tag_emb.assign(pre_emb_t))
+	    best_f1 = 0.0
             for e in xrange(nepochs):
                 # shuffle
                 shuffle([train_lex,train_y,train_cue,train_tags,train_tags_uni], 20)
@@ -163,7 +165,7 @@ def ff_tags(scope_dect,
                 pred_dev = []
                 gold_dev = []
                 for i in xrange(len(valid_lex)):
-                    acc_dev, pred, Y_dev = feeder(valid_lex[i],valid_cue[i],valid_y[i],valid_tags[i] if POS_emb == 1 else valid_tags_uni[i],train=False)
+                    acc_dev, pred, Y_dev = feeder(valid_lex[i],valid_cue[i],valid_tags[i] if POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
                     dev_tot_acc.append(acc_dev)
                     pred_dev.append(pred[:len(valid_lex[i])])
                     gold_dev.append(Y_dev[:len(valid_lex[i])])

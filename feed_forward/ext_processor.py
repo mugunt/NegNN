@@ -10,8 +10,8 @@ fn_training = os.path.abspath('NegNN/data/training/sherlock_train.txt')
 fn_dev = os.path.abspath('NegNN/data/dev/sherlock_dev.txt')
 
 def load_words():
-    w_emb = np.load(os.path.abspath('NegNN/w2v/barista_50_bl/VectorModel-barista_50_bl.data.syn0.npy'))
-    idxs2w_list = np.load(os.path.abspath('NegNN/w2v/barista_50_bl/index2word.npy'))
+    w_emb = np.load(os.path.abspath('NegNN/w2v/words_50/VectorModel-we_lm_sh_data_50.data.syn0.npy'))
+    idxs2w_list = np.load(os.path.abspath('NegNN/w2v/words_50/index2word.npy'))
     pre_w2idxs = dict([(w,i) for i,w in enumerate(idxs2w_list)])
     pre_idxs2w = dict([(v,k) for k,v in pre_w2idxs.iteritems()])
 

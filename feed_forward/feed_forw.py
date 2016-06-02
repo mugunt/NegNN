@@ -116,8 +116,9 @@ def ff(scope_dect,
             _, acc_train = sess.run([optimizer, accuracy], feed_dict = feed_dict)
             return acc_train
         else:
-            acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
-            return acc_test, pred , Y
+            acc_test, pred = sess.run([accuracy,prediction], feed_dict = feed_dict)
+            pred = numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1], pred)).astype('int32')
+	    return acc_test, pred , Y
             # acc_test = sess.run(accuracy, feed_dict = feed_dict)
             # return acc_test, Y
 
