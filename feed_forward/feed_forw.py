@@ -104,7 +104,7 @@ def ff(scope_dect,
 # **************************************************************
 
     def feeder(lex, cue, _y, train = True):
-        X = contextwin_lr(lex, WIN_LEFT, WIN_RIGHT,'word',vocsize)
+        X = contextwin_lr(lex, WIN_LEFT, WIN_RIGHT,'word',vocsize - 1)
         C = contextwin_lr(cue,WIN_LEFT, WIN_RIGHT,'cue')
         Y = numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32')
         feed_dict={
