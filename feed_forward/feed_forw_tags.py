@@ -5,8 +5,8 @@ from tensorflow.models.rnn import rnn, rnn_cell
 from NegNN.utils.tools import shuffle, contextwin_lr, random_uniform, unpickle_data
 from NegNN.utils.metrics import *
 import numpy
-import int_processor, ext_processor
 import random
+import int_processor, ext_processor
 import codecs
 import os,sys
 import time
@@ -39,10 +39,8 @@ def ff_tags(scope_dect,
             train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, POS_emb)
             vocsize = pre_emb_w.shape[0]
             tag_voc_size = pre_emb_t.shape[0]
-        print "tag_voc_size is: ",tag_voc_size
         train_lex, train_tags, train_tags_uni, train_cue, _, train_y = train_set
         valid_lex, valid_tags, valid_tags_uni, valid_cue, _, valid_y = valid_set
-
     else:      
         # Load data
         if not pre_training:
@@ -149,12 +147,18 @@ def ff_tags(scope_dect,
 	    best_f1 = 0.0
             for e in xrange(nepochs):
                 # shuffle
-                shuffle([train_lex,train_y,train_cue,train_tags,train_tags_uni], 20)
+                print len(train_lex[2]),len(train_tags[2])
+                #shuffle([train_lex,train_tags,train_tags_uni,train_cue,train_y], 20)
+                #shuffle(range(0,len(train_lex)),20)
+                print len(train_lex[2]),len(train_tags[2])
                 # TRAINING STEP
                 train_tot_acc = []
                 dev_tot_acc = []
                 tic = time.time()
-                for i in xrange(len(train_lex)):
+                #for i in xrange(len(train_lex)):
+                r = range(len(train_lex))
+                random.shuffle(r)
+                for i in r:
                     acc_train = feeder(train_lex[i],train_cue[i],train_tags[i] if POS_emb == 1 else train_tags_uni[i],train_y[i])
                     # Calculating batch accuracy
                     train_tot_acc.append(acc_train)
@@ -200,7 +204,7 @@ def ff_tags(scope_dect,
             test_tot_acc = []
             pred_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
-                acc_test, pred, Y_test = feeder(test_lex[i], test_cue[i], test_y[i], train = False)
+                acc_test, pred, Y_test = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i], test_y[i], train = False)
                 test_tot_acc.append(acc_test)
                 # get prediction softmax
                 pred_test.append(pred[:len(test_lex[i])])

@@ -42,7 +42,8 @@ def _bilstm(scope_dect,
 
         train_lex, train_tags, train_tags_uni, train_cue, _, train_y = train_set
         valid_lex, valid_tags, valid_tags_uni, valid_cue, _, valid_y = valid_set
-
+        print train_lex[2],train_tags[2]
+        print train_lex[20],train_tags[20]
     else:      
         # Load data
         if not pre_training:
