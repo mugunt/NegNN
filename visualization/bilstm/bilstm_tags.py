@@ -6,7 +6,8 @@ from tensorflow.models.rnn import rnn, rnn_cell
 from NegNN.utils.tools import shuffle, padding, random_uniform, unpickle_data
 from NegNN.utils.metrics import *
 from NegNN.processors import int_processor, ext_processor
-from NegNN.visualization import visualize
+from NegNN.visualization import create_omission
+from scipy import linalg, mat, dot
 import numpy
 import random
 import codecs
@@ -155,10 +156,9 @@ def _bilstm(scope_dect,
         else:
             if visualize == True:
                 matrix_list = sess.run(pred, feed_dict = feed_dict)
-		forward_end = matrix_list[len(lex)-1][...,:200]
+		        forward_end = matrix_list[len(lex)-1][...,:200]
                 backward_end = matrix_list[0][...,200:]
-		print matrix_list[len(lex)-1],forward_end
-                print forward_end.shape,backward_end.shape
+                return forward_end, backward_end
             else:
                 acc_test, _pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
                 return acc_test, _pred , Y
@@ -227,14 +227,24 @@ def _bilstm(scope_dect,
             test_tot_acc = []
             preds_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
+
                 # temporary
                 visualization = True
                 # gather data for visualization
                 if visualization:
                     # get the matrices for the entire sentence
                     fm, bw = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False, visualize = True)
-                    create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
-
+                    lex_list,
+                    cues_list,
+                    tags_list,
+                    y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+                    for j in xrange(len(lex_list)):
+                        fm_om, bw_om = feeder(lex_list[j], cues_list[j], tags_list[j],y_list[j], train = False, visualize = True)
+                        cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
+                        cosb = dot(bw,bw_om.T)/linalg.norm(bw)/linalg.norm(bw_om)
+                        print "Cosine distance for FORWARD PASS is: %f" % cosf
+                        print "Cosine distance for BACKWARD PASS is: %f" % cosb
+                        print
                 acc_test, pred_test, Y_test = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False)
                 test_tot_acc.append(acc_test)
                 # get prediction softmax
