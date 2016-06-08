@@ -45,8 +45,6 @@ def _bilstm(scope_dect,
 
         train_lex, train_tags, train_tags_uni, train_cue, _, train_y = train_set
         valid_lex, valid_tags, valid_tags_uni, valid_cue, _, valid_y = valid_set
-        print train_lex[2],train_tags[2]
-        print train_lex[20],train_tags[20]
     else:      
         # Load data
         if not pre_training:
@@ -227,6 +225,7 @@ def _bilstm(scope_dect,
             test_tot_acc = []
             preds_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
+
                 sent_obj = Sentence([c_idx for c_idx,c in enumerate(test_cue[i]) if c == 1])
                 # temporary
                 visualization = True
@@ -239,9 +238,20 @@ def _bilstm(scope_dect,
                         fm_om, bw_om = feeder(lex_list[j], cues_list[j], tags_list[j],y_list[j], train = False, visualize = True)
                         cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
                         cosb = dot(bw,bw_om.T)/linalg.norm(bw)/linalg.norm(bw_om)
-                        print "Cosine distance for FORWARD PASS is: %f" % cosf
-                        print "Cosine distance for BACKWARD PASS is: %f" % cosb
-                        print
+                        
+                        o_obj = Omission(cosf,
+                            cosb,
+                            dic_inv['idxs2t'][test_cue[i][j]],
+                            dic_inv['idxs2w'][test_lex[i][j]],
+                            j)
+                        
+                        print "Current tag is: %f" % o_obj.tag
+                        print "Current word is: %f" % o_obj.word
+                        print "Current position is: %f" % o_obj.position
+                        print "Cosine distance for FORWARD PASS is: %f" % o_obj.cosf
+                        print "Cosine distance for BACKWARD PASS is: %f" % o_obj.cosb
+                    sent_obj.calculate_pos2cue()
+
                 acc_test, pred_test, Y_test = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False)
                 test_tot_acc.append(acc_test)
                 # get prediction softmax
