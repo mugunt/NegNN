@@ -1,4 +1,5 @@
 # -*-coding:utf-8-*-
+from __future__ import division
 
 import tensorflow as tf
 from tensorflow.models.rnn import rnn, rnn_cell
@@ -154,12 +155,13 @@ def _bilstm(scope_dect,
         else:
             if visualize == True:
                 matrix_list = sess.run(pred, feed_dict = feed_dict)
-                forward_end = matrix_list[-1]
-                backward_end = matrix_list[0]
+		forward_end = matrix_list[len(lex)-1][...,:200]
+                backward_end = matrix_list[0][...,200:]
+		print matrix_list[len(lex)-1],forward_end
                 print forward_end.shape,backward_end.shape
             else:
-                acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
-                return acc_test, pred , Y
+                acc_test, _pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
+                return acc_test, _pred , Y
 
     saver = tf.train.Saver()
     # Launch the session  
@@ -230,9 +232,8 @@ def _bilstm(scope_dect,
                 # gather data for visualization
                 if visualization:
                     # get the matrices for the entire sentence
-                    pred = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False, visualize = True)
+                    fm, bw = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False, visualize = True)
                     create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
-                    for 
 
                 acc_test, pred_test, Y_test = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False)
                 test_tot_acc.append(acc_test)

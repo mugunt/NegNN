@@ -11,8 +11,6 @@ import codecs
 import sys,os
 import time
 import datetime
-import int_processor
-import ext_processor
 
 # Parameters
 # ==================================================
