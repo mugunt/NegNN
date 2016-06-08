@@ -234,10 +234,7 @@ def _bilstm(scope_dect,
                 if visualization:
                     # get the matrices for the entire sentence
                     fm, bw = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False, visualize = True)
-                    lex_list,
-                    cues_list,
-                    tags_list,
-                    y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+                    lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
                     for j in xrange(len(lex_list)):
                         fm_om, bw_om = feeder(lex_list[j], cues_list[j], tags_list[j],y_list[j], train = False, visualize = True)
                         cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
