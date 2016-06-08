@@ -1,12 +1,11 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
 
-from NegNN.bilstm.reader.conll2obj import Data
+from NegNN.reader.conll2obj import Data
 from collections import Counter
 from itertools import chain
 from argparse import ArgumentParser
-from common import data2sents
-
+from NegNN.reader.common import data2sents
 import os
 import cPickle
 import numpy as np

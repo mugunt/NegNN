@@ -4,8 +4,8 @@ import tensorflow as tf
 from tensorflow.models.rnn import rnn, rnn_cell
 from NegNN.utils.tools import shuffle, padding, random_uniform, unpickle_data
 from NegNN.utils.metrics import *
+from NegNN.processors import int_processor, ext_processor
 import numpy
-import int_processor, ext_processor
 import random
 import codecs
 import os,sys
