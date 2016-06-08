@@ -9,9 +9,12 @@ Additional test data extracted from Simple Wikipedia is available in ```/data/te
 
 ## Dependecies
 - Tensorflow (tested on v. 0.7.1)
-- scikit-learn (tested on v. 0.17.1)
+- scikit-learn (tested on v. 0.17.1) - for score report purposes only, feel free to use any other library instead -
 - numpy (tested on v. 1.11.0)
 
 ## Train
-To train the model 
+To train the model, first go to the parent directory of the repository and run ```python NegNN/(bilstm|feed_forward)/train.py```.
+```train.py``` accepts the following flags
+```
+```
 
