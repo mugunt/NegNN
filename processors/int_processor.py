@@ -5,7 +5,7 @@ from NegNN.reader.conll2obj import Data
 from collections import Counter
 from itertools import chain
 from argparse import ArgumentParser
-from NegNN.reader.common import data2sents
+from NegNN.processors.utils import data2sents
 import os
 import cPickle
 import numpy as np

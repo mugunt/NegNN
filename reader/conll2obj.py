@@ -1,4 +1,4 @@
-from common import Folds, Frequencies, open, SExpression
+from common import Folds, Frequencies, SExpression
 from string import punctuation
 from tree import Tree
 import codecs

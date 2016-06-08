@@ -1,116 +1,165 @@
-# -*-coding:utf-8-*-
-#! /usr/bin/env python
-
-from NegNN.bilstm.reader.conll2obj import Data
 import codecs
+import datetime
+import os
+import re
+import shlex
+import subprocess
+import sys
 
-# try different data formats
-def data2sents(sets,look_event,look_scope,lang):
-    def get_uni_mapping(lang):
-        mapping = {}
-        f = codecs.open('NegNN/data/uni_pos_map/%s.txt' % lang,'rb','utf8').readlines()
-        for line in f:
-            spl = line.strip().split('\t')
-            _pos = spl[0].split('|')
-            for _p in _pos: mapping.update({_p:spl[1]})
-        return mapping
-    def segment(word,is_cue):
-        _prefix_one = ['a']
-        _prefix_two = ['ab','un','im','in','ir','il']
-        _prefix_three = ['dis','non']
-        _suffix = ['less','lessness','lessly']
+def utf8_stdout():
+    sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
+def open(path, mode='r'):
+    return codecs.open(path, mode, 'utf-8')
+    
+def call(*command):
+    subprocess.check_call(shlex.split(' '.join(command)))
+
+def datestamp():
+    now = datetime.datetime.now()
+    return '%04d%02d%02d' % (now.year, now.month, now.day)
+
+def to_path(*points):
+    return '/'.join(points)
+
+class Folds(list):
+    def __init__(self, items, n=10):
+        super(Folds, self).__init__()
+        for i in range(n): self.append(set())
+        self.xref = dict()
+        fold = 0
+        for item in items:
+            self[fold].add(item)
+            self.xref[item.identifier()] = fold
+            fold += 1
+            if fold == len(self): fold = 0  
+            
+    def get_fold(self, item):
+        return self.xref[item.identifier()]
+            
+class Frequencies(dict):
+    def __getitem__(self, key):
+        return super(Frequencies, self).__getitem__(key) if key in self else 0
+
+    def __setitem__(self, key, value):
+        assert value.__class__ == int
+        return super(Frequencies, self).__setitem__(key, value)
+
+    def total(self):
+        return sum(self.values())
         
-        which_suff = map(lambda x: word.endswith(x),_suffix)
 
-        if is_cue:
-            if word.lower()[:2] in _prefix_two and len(word)>4:
-                return ([word[:2]+'-',word[2:]],1)
-            elif word.lower()[:1] in _prefix_one and len(word)>4:
-                return ([word[:1]+'-',word[1:]],1)
-            elif word.lower()[:3] in _prefix_three and len(word)>4:
-                return ([word[:3]+'-',word[3:]],1)      
-            elif True in which_suff and len(word)>4:
-                suff_cue = _suffix[which_suff.index(True)]
-                return ([word[:-len(suff_cue)],'-'+suff_cue],0)
+class IdentifierXref(dict):
+    def __getitem__(self, key):
+        if key not in self: self[key] = len(self)
+        super(IdentifierXref, self).__getitem__(key)
+
+
+class SExpression(list):
+    def __init__(self, string, opener='(', closer=')', delimiter=' ', _position=0):
+        super(SExpression, self).__init__()
+
+        self._position = _position
+
+        current_token = ''
+        while self._position < len(string) - 1:
+
+            self._position += 1
+    
+            character = string[self._position]
+
+            if character == opener:
+                if current_token:
+                    self.append(current_token)
+                    current_token = ''
+                child = SExpression(string, opener, closer, delimiter, self._position)
+                self.append(child)
+                self._position = child._position
+
+            elif character == closer:
+                if current_token:
+                    self.append(current_token)
+                return
+
+            elif character == delimiter:
+                if current_token:
+                    self.append(current_token)
+                    current_token = ''
+            
             else:
-                return ([word],None)
+                current_token += character
 
-        else:
-            return ([word],None)
+    def __str__(self):
+        return '(%s)' % ' '.join([str(child) for child in self])
 
-    def assign_tag(is_event,is_scope,look_event,look_scope):
-        if is_event and look_event:
-            return 'E'
-        elif is_scope and look_scope:
-            return 'I'
-        else: return 'O'
+    def is_preterminal(self):
+        for child in self:
+            if child.__class__ == SExpression:
+                return False
+        return True
 
-    sents = []
-    tag_sents = []
-    ys = []
-    lengths = []
+class Properties(dict):
+    
+    PATTERN = re.compile(r'\s*(.+?)\s*=\s*(.+)\s*')
 
-    cues_one_hot = []
-    scopes_one_hot = []
-
-    for d in sets:
-        length = 0
-        for s_idx,s in enumerate(d):
-            all_cues = [i for i in range(len(s)) if filter(lambda x: x.cue!=None,s[i].annotations)!=[]]
-            if len(s[0].annotations) > 0:
-                for curr_ann in range(len(s[0].annotations)):
-                    cues_idxs = [i[0] for i in filter(lambda x: x[1]!=None,[(i,s[i].annotations[curr_ann].cue) for i in range(len(s))])]
-                    event_idxs = [i[0] for i in filter(lambda x: x[1]!=None,[(i,s[i].annotations[curr_ann].event) for i in range(len(s))])]
-                    scope_idxs = [i[0] for i in filter(lambda x: x[1]!=None,[(i,s[i].annotations[curr_ann].scope) for i in range(len(s))])]
-
-                    sent = []
-                    tag_sent = []
-                    y = []
-
-                    cue_one_hot = []
-                    scope_one_hot = []
-
-                    for t_idx,t in enumerate(s):
-                        word,tag = t.word,t.pos
-                        word_spl,word_idx = segment(word, t_idx in all_cues)
-                        if len(word_spl) == 1:
-                            _y = assign_tag(t_idx in event_idxs, t_idx in scope_idxs,look_event,look_scope)
-                            c_info = ['NOTCUE'] if t_idx not in cues_idxs else ["CUE"]
-                            s_info = ['S'] if t_idx in scope_idxs else ['NS']
-                            tag_info = [tag]
-
-                        elif len(word_spl) == 2:
-                            _y_word = assign_tag(t_idx in event_idxs, t_idx in scope_idxs,look_event,look_scope)
-                            if t_idx in cues_idxs:
-                                _y = [_y_word,'O'] if word_idx == 0 else ['O',_y_word]
-                                c_info = ['NOTCUE','CUE'] if word_idx == 0 else ['CUE','NOTCUE']
-                                s_info = ['S','NS'] if word_idx == 0 else ['NS','S']
-                            else:
-                                _y = [_y_word,_y_word]
-                                c_info = ['NOTCUE','NOTCUE']
-                                s_info = ['S','S'] if t_idx in scope_idxs else ['NS',"NS"]
-                            tag_info = [tag,'AFF'] if word_idx == 0 else ['AFF',tag]
-                        # add the word(s) to the sentence list
-                        sent.extend(word_spl)
-                        # add the POS tag(s) to the TAG sentence list
-                        tag_sent.extend(tag_info)
-                        # add the _y for the word
-                        y.extend(_y)
-                        # extend the cue hot vector
-                        cue_one_hot.extend(c_info)
-                        # extend the scope hot vector
-                        scope_one_hot.extend(s_info)
-
-                    sents.append(sent)
-                    tag_sents.append(tag_sent)
-                    ys.append(y)
-                    cues_one_hot.append(cue_one_hot)
-                    scopes_one_hot.append(scope_one_hot)
-                    length+=1
-
-        lengths.append(length)
-    # make normal POS tag into uni POS tags
-    pos2uni = get_uni_mapping(lang)
-    tag_uni_sents = [[pos2uni[t] for t in _s] for _s in tag_sents]
-
-    return sents,tag_sents,tag_uni_sents,ys,cues_one_hot,scopes_one_hot,lengths
+    def __init__(self, path):
+        super(Properties, self).__init__()
+        self.path = path
+        if os.path.exists(path):
+            istream = open(path)
+            for line in istream:
+                line = line.strip()
+                if len(line) > 0:
+                    match = Properties.PATTERN.search(line)
+                    key = match.group(1)
+                    value = match.group(2)
+                    if value.lower() in ('true', 'false'): value = bool(value)                    
+                    self[key] = value
+            istream.close()
+        
+    def commit(self):
+        ostream = open(self.path, 'w')
+        for item in self.items():
+            ostream.write('%s = %s\n' % item)
+        ostream.close()
+        
+        
+class Span(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+        
+    def __str__(self):
+        return '(%d-%d)' % (self.start, self.end)
+        
+    def __len__(self):
+        return self.end - self.start + 1
+        
+    def __eq__(self, other):
+        return self.start == other.start and self.end == other.end
+        
+    def left_match(self, other):
+        return self.start == other.start
+        
+    def right_match(self, other):
+        return self.end == other.end
+        
+    def intersection(self, other):
+        start = None
+        end = None
+        if self.start >= other.start and self.start <= other.end:
+            start = self.start
+            end = self.end if self.end < other.end else other.end
+        elif self.end >= other.start and self.end <= other.end:
+            start = self.start if self.start > other.start else other.start
+            end = self.end
+        return None if start == None and end == None else Span(start, end)
+        
+    def precision(self, other):
+        intersection = self.intersection(other)
+        return len(intersection) / float(len(self)) if intersection else float(0)
+        
+    def recall(self, other):
+        intersection = self.intersection(other)
+        return len(intersection) / float(len(other)) if intersection else float(0)
+        

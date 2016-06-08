@@ -2,7 +2,7 @@
 #! /usr/bin/env python
 #
 from NegNN.reader.conll2obj import Data
-from NegNN.reader.common import data2sents
+from NegNN.processors.utils import data2sents
 import numpy as np
 import os
 
