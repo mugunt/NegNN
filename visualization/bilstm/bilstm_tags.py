@@ -6,7 +6,7 @@ from tensorflow.models.rnn import rnn, rnn_cell
 from NegNN.utils.tools import shuffle, padding, random_uniform, unpickle_data
 from NegNN.utils.metrics import *
 from NegNN.processors import int_processor, ext_processor
-from NegNN.visualization import create_omission
+from NegNN.visualization import create_omission, Sentence, Omission
 from scipy import linalg, mat, dot
 import numpy
 import random
@@ -227,7 +227,7 @@ def _bilstm(scope_dect,
             test_tot_acc = []
             preds_test, gold_test = [],[]
             for i in xrange(len(test_lex)):
-
+                sent_obj = Sentence([c_idx for c_idx,c in enumerate(test_cue[i]) if c == 1])
                 # temporary
                 visualization = True
                 # gather data for visualization
