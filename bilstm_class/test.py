@@ -3,7 +3,7 @@
 
 from bilstm import BiLSTM
 from random import shuffle
-from NegNN.utils.tools import shuffle, padding
+from NegNN.utils.tools import padding, unpickle_data
 from NegNN.utils.metrics import *
 from NegNN.processors import int_processor
 from NegNN.processors import ext_processor
@@ -46,7 +46,7 @@ num_classes = int(model_flags['num_classes'])
 max_sent_length = int(model_flags['max_sent_length'])
 num_hidden = int(model_flags['num_hidden'])
 emb_update = str2bool(model_flags['emb_update'])
-training_lang = model_flags['training_lang']
+tr_lang = model_flags['training_lang']
 learning_rate = model_flags['learning_rate']
 nepochs = model_flags['num_epochs']
 
@@ -55,12 +55,12 @@ test_files = FLAGS.test_set.split(',')
 # Data Preparation
 # ==================================================
 
-if not FLAGS.pre_training:
-    assert test_lang == tr_lang
-    _, _, voc, dic_inv = unpickle_data(folder)
-    test_lex, _, _, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, test_lang)
+if not pre_training:
+    assert FLAGS.test_lang == tr_lang
+    _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
+    test_lex, _, _, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
 else:
-    test_set, dic_inv, pre_emb_w, _ = ext_processor.load_test(test_files, scope_dect, event_dect, test_lang, emb_size, POS_emb)
+    test_set, dic_inv, pre_emb_w, _ = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, emb_size, POS_emb)
     test_lex, _, _, test_cue, _, test_y = test_set
 
 if FLAGS.pre_training: vocsize = pre_emb_w.shape[0]
