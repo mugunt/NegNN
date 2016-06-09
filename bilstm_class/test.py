@@ -60,7 +60,7 @@ if not pre_training:
         _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
 	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
 else:
-	test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, emb_size, POS_emb)
+	test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
         test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
 
 if pre_training:

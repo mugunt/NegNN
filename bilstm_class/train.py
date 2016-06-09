@@ -70,7 +70,7 @@ if not FLAGS.pre_training:
     vocsize = len(voc['w2idxs'])
     tag_voc_size = len(voc['t2idxs']) if FLAGS.POS_emb == 1 else len(voc['tuni2idxs'])
 else:
-    train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, FLAGS.POS_emb)
+    train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(FLAGS.scope_detection, FLAGS.event_detection, FLAGS.training_lang, FLAGS.embedding_dim, FLAGS.POS_emb)
     vocsize = pre_emb_w.shape[0]
     tag_voc_size = pre_emb_t.shape[0]
 
