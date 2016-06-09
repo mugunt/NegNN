@@ -54,4 +54,6 @@ To train the model, first go to the parent directory of the repository and run `
   --training_lang TRAINING_LANG
                         Language of the tranining data (default: en)
 ```
+Please disregard the ```event detection``` flag for the moment; this might be part of future work.
+
 
