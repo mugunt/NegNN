@@ -72,7 +72,8 @@ else: vocsize = len(voc['w2idxs'])
 def feeder(_bilstm, lex, cue, tags, _y, train = True):
     X = padding(lex, FLAGS.max_sent_length, vocsize - 1)
     C = padding(cue, FLAGS.max_sent_length, 2)
-    if tags: T = padding(tags, FLAGS.max_sent_length, tag_voc_size - 1)
+    if tags != []:
+        T = padding(tags, FLAGS.max_sent_length, tag_voc_size - 1)
     Y = padding(numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32'),FLAGS.max_sent_length,0,False)
     _mask = [1 if t!=vocsize - 1 else 0 for t in X]
     feed_dict={
@@ -83,7 +84,8 @@ def feeder(_bilstm, lex, cue, tags, _y, train = True):
         _bilstm.istate_bw: numpy.zeros((1, 2*FLAGS.num_hidden)),
         _bilstm.seq_len: numpy.asarray([len(lex)]),
         _bilstm.mask: _mask}
-    if tags: feed_dict.update({_bilstm.t:T})
+    if tags != []:
+        feed_dict.update({_bilstm.t:T})
     if train:
         feed_dict.update({_bilstm.lr:clr})
         _, acc_train = sess.run([optimizer, bi_lstm.accuracy], feed_dict = feed_dict)
@@ -125,7 +127,7 @@ with graph.as_default():
             if POS_emb in [1,2]:
                 acc_test, pred_test, Y_test = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False)
             else:
-                acc_test, pred_test, Y_test = feeder(bi_lstm, test_lex[i], test_cue[i],test_y[i], train = False)
+                acc_test, pred_test, Y_test = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False)
             test_tot_acc.append(acc_test)
             # get prediction softmax
             preds_test.append(pred_test[:len(test_lex[i])])

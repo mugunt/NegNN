@@ -8,7 +8,6 @@ from NegNN.utils.metrics import *
 from NegNN.processors import int_processor
 from NegNN.processors import ext_processor
 import tensorflow as tf
-import numpy as np
 import sys
 import os
 import time
@@ -84,7 +83,8 @@ valid_lex, valid_tags, valid_tags_uni, valid_cue, _, valid_y = valid_set
 def feeder(_bilstm, lex, cue, tags, _y, train = True):
     X = padding(lex, FLAGS.max_sent_length, vocsize - 1)
     C = padding(cue, FLAGS.max_sent_length, 2)
-    if tags != None: T = padding(tags, FLAGS.max_sent_length, tag_voc_size - 1)
+    if tags != []: 
+        T = padding(tags, FLAGS.max_sent_length, tag_voc_size - 1)
     Y = padding(numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32'),FLAGS.max_sent_length,0,False)
     _mask = [1 if t!=vocsize - 1 else 0 for t in X]
     feed_dict={
@@ -95,7 +95,8 @@ def feeder(_bilstm, lex, cue, tags, _y, train = True):
         _bilstm.istate_bw: numpy.zeros((1, 2*FLAGS.num_hidden)),
         _bilstm.seq_len: numpy.asarray([len(lex)]),
         _bilstm.mask: _mask}
-    if tags != None: feed_dict.update({_bilstm.t:T})
+    if tags != []:
+        feed_dict.update({_bilstm.t:T})
     if train:
     	feed_dict.update({_bilstm.lr:clr})
     	_, acc_train = sess.run([optimizer, bi_lstm.accuracy], feed_dict = feed_dict)
@@ -147,7 +148,7 @@ with tf.Graph().as_default():
                 if FLAGS.POS_emb in [1,2]:
                     acc_train = feeder(bi_lstm, train_lex[i],train_cue[i], train_tags[i] if FLAGS.POS_emb == 1 else train_tags_uni[i], train_y[i])
                 else:
-                    acc_train = feeder(bi_lstm, train_lex[i], train_cue[i], None, train_y[i])
+                    acc_train = feeder(bi_lstm, train_lex[i], train_cue[i], [], train_y[i])
                 # Calculating batch accuracy
                 train_tot_acc.append(acc_train)
                 print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex)),'completed in %.2f (sec) <<\r'%(time.time()-tic),
@@ -161,7 +162,7 @@ with tf.Graph().as_default():
                 if FLAGS.POS_emb in [1,2]:
                     acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],valid_tags[i] if FLAGS.POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
                 else:
-                    acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],None, valid_y[i],train=False)
+                    acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i], [], valid_y[i],train=False)
                 dev_tot_acc.append(acc_dev)
                 pred_dev.append(pred[:len(valid_lex[i])])
                 gold_dev.append(Y_dev[:len(valid_lex[i])])
@@ -187,131 +188,3 @@ with tf.Graph().as_default():
                 print "Halving the lr..."
                 clr *= 0.5
                 dry = 0
-
-
-
-        # # Set the external matrices, if external flag is True
-        # if FLAGS.pre_training:
-        #     sess.run(bi_lstm._weights['w_emb'].assign(pre_emb_w))
-        #     if FLAGS.POS_emb in [1,2]:
-        #         sess.run(bi_lstm._weights['t_emb'].assign(pre_emb_t))
-        # try:
-        #     best_f1 = 0.0
-        #     be = 0
-
-        #     for e in xrange(FLAGS.num_epochs):
-        #         # shuffle
-        #         shuffle([train_lex, train_tags, train_tags_uni, train_cue, train_scope, train_y], 20)
-        #         tic = time.time()
-        #         train_tot_acc = []
-        #         dev_tot_acc = []
-        #         for i in xrange(len(train_lex)):
-        #             X = padding(train_lex[i],FLAGS.max_sent_length,voc_size - 1)
-        #             C = padding(train_cue[i],FLAGS.max_sent_length,2)
-        #             if FLAGS.POS_emb == 1:
-        #                 T = padding(train_tags[i],FLAGS.max_sent_length,tag_voc_size - 1)
-        #             if FLAGS.POS_emb == 2:
-        #                 T = padding(train_tags_uni[i],FLAGS.max_sent_length,tag_voc_size - 1)
-        #             Y = padding(np.asarray(map(lambda x: [1,0] if x == 0 else [0,1],train_y[i])).astype('int32'),FLAGS.max_sent_length,0,False)
-        #             _mask = [1 if _t!=voc_size else 0 for _t in X]
-        #             # build feed_dict
-        #             feed_dict = {
-        #                 bi_lstm.x: X,
-        #                 bi_lstm.c: C,
-        #                 bi_lstm.y: Y,
-        #                 bi_lstm.istate_fw: np.zeros((1, 2*FLAGS.num_hidden)),
-        #                 bi_lstm.istate_bw: np.zeros((1, 2*FLAGS.num_hidden)),
-        #                 bi_lstm.seq_len: np.asarray([len(train_lex[i])]),
-        #                 bi_lstm.mask: _mask,
-        #                 bi_lstm.lr: clr
-        #                 }
-        #             if FLAGS.POS_emb in [1,2]:
-        #                 feed_dict.update({bi_lstm.t:T})
-        #             # run training
-        #             sess.run(optimizer,feed_dict = feed_dict)
-        #             accuracy = sess.run(bi_lstm.accuracy,feed_dict = feed_dict)
-        #             # normalization of embeddings if needed
-        #             # if FLAGS.normalize_emb:
-        #             #     sess.run(bi_lstm.normalize_w_emb)
-        #                 # if FLAGS.POS_emb in [1,2]: 
-        #                 #     sess.run(bi_lstm.normalize_t_emb)
-        #             train_tot_acc.append(get_accuracy(accuracy,len(train_lex[i])))
-        #             print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex)),'completed in %.2f (sec) <<\r'%(time.time()-tic),
-        #             sys.stdout.flush()
-        #         print "Mean training accuracy is: ",sum(train_tot_acc)/len(train_tot_acc)
-
-        #         pred_dev, gold_dev = [],[]
-        #         for i in xrange(len(valid_lex)):
-        #             # pad the word and cue vector of the dev set with random shit
-        #             X_dev = padding(valid_lex[i],FLAGS.max_sent_length,voc_size - 1)
-        #             C_dev = padding(valid_cue[i],FLAGS.max_sent_length,2)
-        #             if FLAGS.POS_emb == 1:
-        #                 T_dev = padding(valid_tags[i],FLAGS.max_sent_length,tag_voc_size - 1)
-        #             if FLAGS.POS_emb == 2:
-        #                 T_dev = padding(valid_tags_uni[i],FLAGS.max_sent_length,tag_voc_size - 1)
-        #             Y_dev = padding(np.asarray(map(lambda x: [1,0] if x == 0 else [0,1],valid_y[i])).astype('int32'),FLAGS.max_sent_length,0,False)
-        #             _mask_dev = [1 if t_d!=voc_size else 0 for t_d in X_dev]
-        #             feed_dict={
-        #                 bi_lstm.x: X_dev,
-        #                 bi_lstm.c: C_dev,
-        #                 bi_lstm.y: Y_dev,
-        #                 bi_lstm.istate_fw: np.zeros((1, 2*FLAGS.num_hidden)),
-        #                 bi_lstm.istate_bw: np.zeros((1, 2*FLAGS.num_hidden)),
-        #                 bi_lstm.seq_len: np.asarray([len(valid_lex[i])]),
-        #                 bi_lstm.mask: _mask_dev
-        #                 }
-        #             if FLAGS.POS_emb in [1,2]:
-        #                 feed_dict.update({bi_lstm.t: T_dev})
-        #             # get dev set accuracy
-        #             accuracy_dev,label_dev = sess.run([bi_lstm.accuracy,bi_lstm.label_out], feed_dict = feed_dict )
-        #             dev_tot_acc.append(get_accuracy(accuracy_dev,len(valid_lex[i])))
-
-        #             pred_dev.append(label_dev[:len(valid_lex[i])])
-        #             gold_dev.append(Y_dev[:len(valid_lex[i])])
-        #         print 'Mean dev accuracy is: ',sum(dev_tot_acc)/len(valid_lex)
-        #         print pred_dev[1]
-        #         print gold_dev[1]
-        #         print pred_dev[3]
-        #         print gold_dev[3]
-        #         print pred_dev[12]
-        #         print gold_dev[12]
-        #         print pred_dev[23]
-        #         print gold_dev[23] 
-        #         f1,rep_dev,cm_dev = get_eval(pred_dev,gold_dev)
-
-        #         if f1 > best_f1:
-        #             best_f1 = f1
-        #             print "Best f1 is: ",best_f1
-        #             be = e
-
-        #             # store the model
-        #             saver.save(sess, checkpoint_prefix, global_step=be)
-        #             print "Model saved."
-
-        #             print "Storing reports..."
-        #             with codecs.open(os.path.join(checkpoint_dir,'valid_report.txt'),'wb','utf8') as store_rep_dev:
-        #                 store_rep_dev.write(rep_dev)
-        #                 store_rep_dev.write(str(cm_dev)+"\n")
-        #             print "Reports stored..."
-
-        #             print "Storing labelling results for dev set..."
-        #             with codecs.open(os.path.join(checkpoint_dir,'best_valid.txt'),'wb','utf8') as store_pred:
-        #                 for s, y_sys, y_hat in zip(valid_lex,pred_dev,gold_dev):
-        #                     s = [voc_inv['idxs2w'][w] if w in voc_inv['idxs2w'] else '<UNK>' for w in s]
-        #                     assert len(s)==len(y_sys)==len(y_hat)
-        #                     for _word,_sys,gold in zip(s,y_sys,y_hat):
-        #                         _p = list(_sys).index(_sys.max())
-        #                         _g = 0 if list(gold)==[1,0] else 1
-        #                         store_pred.write("%s\t%s\t%s\n" % (_word,_g,_p))
-        #                     store_pred.write("\n")
-        #             dry = 0
-        #         else:
-        #             dry += 1
-
-        #         if abs(be-e) >= 10 and dry>=5:
-        #             print "Halving the lr..."
-        #             clr *= 0.5
-        #             dry = 0
-        # except KeyboardInterrupt:
-        #     print "Exiting safely(?)..."
-        #     sys.exit()
