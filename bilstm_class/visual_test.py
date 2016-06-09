@@ -8,6 +8,8 @@ from NegNN.utils.metrics import *
 from NegNN.processors import int_processor
 from NegNN.processors import ext_processor
 from NegNN.visualization.visualize import Sentence, Omission, create_omission
+from scipy import dot, linalg
+
 
 import tensorflow as tf
 import numpy as np
