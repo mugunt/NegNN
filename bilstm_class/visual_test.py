@@ -59,15 +59,16 @@ test_files = FLAGS.test_set.split(',')
 # ==================================================
 
 if not pre_training:
-        assert FLAGS.test_lang == tr_lang
-        _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
-    test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
+	assert FLAGS.test_lang == tr_lang
+    	_, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
+    	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
 else:
-    test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
+    	test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
         test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
 
+
 if pre_training:
-    vocsize = pre_emb_w.shape[0]
+    	vocsize = pre_emb_w.shape[0]
         tag_voc_size = pre_emb_t.shape[0]
 else:
         vocsize = len(voc['w2idxs'])
@@ -76,7 +77,7 @@ else:
 # Evaluation
 # ==================================================
 
-def feeder(_bilstm, lex, cue, tags, _y, train = True):
+def feeder(_bilstm, lex, cue, tags, _y):
     X = padding(lex, max_sent_length, vocsize - 1)
     C = padding(cue, max_sent_length, 2)
     if tags != []:
@@ -93,7 +94,7 @@ def feeder(_bilstm, lex, cue, tags, _y, train = True):
         _bilstm.mask: _mask}
     if tags != []:
         feed_dict.update({_bilstm.t:T})
-    matrix_list = sess.run(pred, feed_dict = feed_dict)
+    matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
     forward_end = matrix_list[len(lex)-1][...,:200]
     backward_end = matrix_list[0][...,200:]
     return forward_end, backward_end
@@ -127,26 +128,30 @@ with graph.as_default():
             # create a sentence object for the current sentence
             sent_obj = Sentence([c_idx for c_idx,c in enumerate(test_cue[i]) if c == 1])
             if POS_emb in [1,2]:
-                fm, bw = feeder(test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False, visualize = True)
+                fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+                lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
             else:
-                fm, bw = feeder(test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
+                fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
+		lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],[],test_y[i])
             # create a list of subsentences where a word is discarded each time
-            lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
             for j in xrange(len(lex_list)):
                 # get the forward and backward last state for each subsentence
-                fm_om, bw_om = feeder(lex_list[j], cues_list[j], tags_list[j],y_list[j], train = False, visualize = True)
-                cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
+		if tags_list != []:
+                	fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
+                else:
+			fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], [], y_list[j])
+		cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
                 cosb = dot(bw,bw_om.T)/linalg.norm(bw)/linalg.norm(bw_om)
                 # create omission objects
                 o_obj = Omission(cosf,
                     cosb,
                     dic_inv['idxs2t'][test_cue[i][j]],
-                    dic_inv['idxs2w'][test_lex[i][j]],
+                    dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else '<UNK>',
                     j)
                 
-                print "Current tag is: %f" % o_obj.tag
-                print "Current word is: %f" % o_obj.word
-                print "Current position is: %f" % o_obj.position
+                print "Current tag is: %s" % o_obj.tag
+                print "Current word is: %s" % o_obj.word
+                print "Current position is: %d" % o_obj.index
                 print "Cosine distance for FORWARD PASS is: %f" % o_obj.cosf
                 print "Cosine distance for BACKWARD PASS is: %f" % o_obj.cosb
             sent_obj.calculate_pos2cue()

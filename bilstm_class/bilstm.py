@@ -73,11 +73,11 @@ class BiLSTM(object):
         # # if tags: self.normalize_t_emb = tf.nn.l2_normalize(self._weights['t_emb'],1)
 
         if tags:
-            pred = self.BiLSTMgraph(self.x, self.c, self.t, self.istate_fw, self.istate_bw, self._weights, self._biases)
+            self.pred = self.BiLSTMgraph(self.x, self.c, self.t, self.istate_fw, self.istate_bw, self._weights, self._biases)
         else:
-            pred = self.BiLSTMgraph(self.x, self.c, None, self.istate_fw, self.istate_bw, self._weights, self._biases)
+            self.pred = self.BiLSTMgraph(self.x, self.c, None, self.istate_fw, self.istate_bw, self._weights, self._biases)
 
-        pred_mod = [tf.matmul(item, self._weights['out_w']) + self._biases['out_b'] for item in pred]
+        pred_mod = [tf.matmul(item, self._weights['out_w']) + self._biases['out_b'] for item in self.pred]
         outputs = tf.squeeze(tf.pack(pred_mod))
 
         self.loss = tf.reduce_sum(tf.mul(tf.nn.softmax_cross_entropy_with_logits(outputs, self.y),self.mask))/tf.reduce_sum(self.mask) # softmax
