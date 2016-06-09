@@ -37,8 +37,8 @@ model_flags = retrieve_flags(config_file)
 def str2bool(x):
     return True if x == "True" else False
 
-scope_detection = str2bool(model_flags['scope_detection'])
-event_detection = str2bool(model_flags['event_detection'])
+scope_dect = str2bool(model_flags['scope_detection'])
+event_dect = str2bool(model_flags['event_detection'])
 embedding_dim = int(model_flags['embedding_dim'])
 POS_emb = int(model_flags['pos_emb'])
 pre_training = str2bool(model_flags['pre_training'])
@@ -56,32 +56,36 @@ test_files = FLAGS.test_set.split(',')
 # ==================================================
 
 if not pre_training:
-    assert FLAGS.test_lang == tr_lang
-    _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
-    test_lex, _, _, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
+        assert FLAGS.test_lang == tr_lang
+        _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
+	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
 else:
-    test_set, dic_inv, pre_emb_w, _ = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, emb_size, POS_emb)
-    test_lex, _, _, test_cue, _, test_y = test_set
+	test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, emb_size, POS_emb)
+        test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
 
-if FLAGS.pre_training: vocsize = pre_emb_w.shape[0]
-else: vocsize = len(voc['w2idxs'])
+if pre_training:
+	vocsize = pre_emb_w.shape[0]
+        tag_voc_size = pre_emb_t.shape[0]
+else:
+        vocsize = len(voc['w2idxs'])
+        tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
 
 # Evaluation
 # ==================================================
 
 def feeder(_bilstm, lex, cue, tags, _y, train = True):
-    X = padding(lex, FLAGS.max_sent_length, vocsize - 1)
-    C = padding(cue, FLAGS.max_sent_length, 2)
+    X = padding(lex, max_sent_length, vocsize - 1)
+    C = padding(cue, max_sent_length, 2)
     if tags != []:
-        T = padding(tags, FLAGS.max_sent_length, tag_voc_size - 1)
-    Y = padding(numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32'),FLAGS.max_sent_length,0,False)
+        T = padding(tags, max_sent_length, tag_voc_size - 1)
+    Y = padding(numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32'),max_sent_length,0,False)
     _mask = [1 if t!=vocsize - 1 else 0 for t in X]
     feed_dict={
         _bilstm.x: X,
         _bilstm.c: C,
         _bilstm.y: Y,
-        _bilstm.istate_fw: numpy.zeros((1, 2*FLAGS.num_hidden)),
-        _bilstm.istate_bw: numpy.zeros((1, 2*FLAGS.num_hidden)),
+        _bilstm.istate_fw: numpy.zeros((1, 2*num_hidden)),
+        _bilstm.istate_bw: numpy.zeros((1, 2*num_hidden)),
         _bilstm.seq_len: numpy.asarray([len(lex)]),
         _bilstm.mask: _mask}
     if tags != []:
@@ -117,7 +121,7 @@ with graph.as_default():
         # print "Model restored!"
 
         # load model from last checkpoint
-        checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
+        checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
         saver.restore(sess,checkpoint_file)
         print "Model restored!"
         # Collect the predictions here
@@ -135,8 +139,8 @@ with graph.as_default():
         print 'Mean test accuracy: ', sum(test_tot_acc)/len(test_lex)
         _,report_tst,best_test = get_eval(preds_test,gold_test)
 
-        write_report(folder,report_tst,best_test,FLAGS.test_name)
-        store_prediction(folder, test_lex, dic_inv, preds_test, gold_test,FLAGS.test_name)
+        write_report(FLAGS.checkpoint_dir,report_tst,best_test,FLAGS.test_name)
+        store_prediction(FLAGS.checkpoint_dir, test_lex, dic_inv, preds_test, gold_test,FLAGS.test_name)
 
         # # Collect the predictions here
         # test_tot_acc = []
