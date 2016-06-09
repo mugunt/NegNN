@@ -95,8 +95,9 @@ def feeder(_bilstm, lex, cue, tags, _y):
     if tags != []:
         feed_dict.update({_bilstm.t:T})
     matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
-    forward_end = matrix_list[len(lex)-1][...,:200]
-    backward_end = matrix_list[0][...,200:]
+    forward_end = np.array(matrix_list[len(lex)-1][...,:200]).flatten()
+    backward_end = np.array(matrix_list[0][...,200:]).flatten()
+    print forward_end.shape,backward_end.shape
     return forward_end, backward_end
 
 
@@ -132,36 +133,21 @@ with graph.as_default():
                 lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
             else:
                 fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
-		lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],[],test_y[i])
+		          lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],[],test_y[i])
             # create a list of subsentences where a word is discarded each time
             for j in xrange(len(lex_list)):
                 # get the forward and backward last state for each subsentence
-		if tags_list != []:
-                	fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
+		        if tags_list != []:
+                    fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
                 else:
-			fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], [], y_list[j])
-		cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
+                    fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], [], y_list[j])
+		        cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
                 cosb = dot(bw,bw_om.T)/linalg.norm(bw)/linalg.norm(bw_om)
                 # create omission objects
-                o_obj = Omission(cosf,
-                    cosb,
-                    dic_inv['idxs2t'][test_cue[i][j]],
-                    dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else '<UNK>',
-                    j)
+                o_obj = Omission(cosf, cosb, dic_inv['idxs2t'][test_cue[i][j]],
+                    dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else '<UNK>', j)
                 
-                print "Current tag is: %s" % o_obj.tag
-                print "Current word is: %s" % o_obj.word
-                print "Current position is: %d" % o_obj.index
-                print "Cosine distance for FORWARD PASS is: %f" % o_obj.cosf
-                print "Cosine distance for BACKWARD PASS is: %f" % o_obj.cosb
             sent_obj.calculate_pos2cue()
-            
-        #     test_tot_acc.append(acc_test)
-        #     # get prediction softmax
-        #     preds_test.append(pred_test[:len(test_lex[i])])
-        #     gold_test.append(Y_test[:len(test_lex[i])])
-        # print 'Mean test accuracy: ', sum(test_tot_acc)/len(test_lex)
-        # _,report_tst,best_test = get_eval(preds_test,gold_test)
-
-        # write_report(FLAGS.checkpoint_dir,report_tst,best_test,FLAGS.test_name)
-        # store_prediction(FLAGS.checkpoint_dir, test_lex, dic_inv, preds_test, gold_test,FLAGS.test_name)
+            for tok in sent_obj:
+                print "%s\t%d\t%s\t%f\t%f\n" % (tok.word,tok.index,tok.tag,tok.cosf,tok.cosb)
+            print

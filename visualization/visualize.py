@@ -11,7 +11,7 @@ class Sentence(list):
 
     def calculate_pos2cue(self):
         for o in self:
-            o.set_pos2cue(min([abs(o.pos - c) for c in self.cue]))
+            o.set_pos2cue(min([abs(o.index - c) for c in self.cue]))
 
 class Omission(object):
     def __init__(self,
@@ -25,7 +25,7 @@ class Omission(object):
         self.cosb = cosb
         self.tag = tag
         self.word = word
-        self.pos = pos
+        self.index = index
         self.pos2cue = -1
 
     def set_pos2cue(self,value):
