@@ -74,9 +74,9 @@ store_config(checkpoint_dir,FLAGS)
 if not FLAGS.pre_training:
     train_set, valid_set, voc, dic_inv = int_processor.load_train_dev(FLAGS.scope_detection, FLAGS.event_detection, FLAGS.training_lang, out_dir)
     vocsize = len(voc['w2idxs'])
-    tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
+    tag_voc_size = len(voc['t2idxs']) if FLAGS.POS_emb == 1 else len(voc['tuni2idxs'])
 else:
-    train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, POS_emb)
+    train_set, valid_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(scope_dect, event_dect, tr_lang, emb_size, FLAGS.POS_emb)
     vocsize = pre_emb_w.shape[0]
     tag_voc_size = pre_emb_t.shape[0]
 
@@ -99,28 +99,28 @@ valid_lex, valid_tags, valid_tags_uni, valid_cue, _, valid_y = valid_set
 #     else: tag_voc_size = len(voc['t2idxs']) if FLAGS.POS_emb == 1 else len(voc['tuni2idxs'])
 # else: tag_voc_size = 0
 
-def feeder(lex, cue, tags, _y, train = True):
-    X = padding(lex, max_sent_len, vocsize - 1)
-    C = padding(cue, max_sent_len, 2)
-    if tags: T = padding(tags, max_sent_len, tag_voc_size - 1)
-    Y = padding(numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32'),max_sent_len,0,False)
+def feeder(_bilstm, lex, cue, tags, _y, train = True):
+    X = padding(lex, FLAGS.max_sent_length, vocsize - 1)
+    C = padding(cue, FLAGS.max_sent_length, 2)
+    if tags: T = padding(tags, FLAGS.max_sent_length, tag_voc_size - 1)
+    Y = padding(numpy.asarray(map(lambda x: [1,0] if x == 0 else [0,1],_y)).astype('int32'),FLAGS.max_sent_length,0,False)
     _mask = [1 if t!=vocsize - 1 else 0 for t in X]
     feed_dict={
-        x: X,
-        c: C,
-        y: Y,
-        istate_fw: numpy.zeros((1, 2*n_hidden)),
-        istate_bw: numpy.zeros((1, 2*n_hidden)),
-        seq_len: numpy.asarray([len(lex)]),
-        mask: _mask}
-    if tags: feed_dict.update{t:T}
-    # if train:
-    feed_dict.update({lr:clr})
-    _, acc_train = sess.run([optimizer, accuracy], feed_dict = feed_dict)
-    return acc_train
-    # else:
-    #     acc_test, pred = sess.run([accuracy,predictions], feed_dict = feed_dict)
-    #     return acc_test, pred , Y
+        _bilstm.x: X,
+        _bilstm.c: C,
+        _bilstm.y: Y,
+        _bilstm.istate_fw: numpy.zeros((1, 2*FLAGS.num_hidden)),
+        _bilstm.istate_bw: numpy.zeros((1, 2*FLAGS.num_hidden)),
+        _bilstm.seq_len: numpy.asarray([len(lex)]),
+        _bilstm.mask: _mask}
+    if tags: feed_dict.update({_bilstm.t:T})
+    if train:
+    	feed_dict.update({_bilstm.lr:clr})
+    	_, acc_train = sess.run([optimizer, bi_lstm.accuracy], feed_dict = feed_dict)
+    	return acc_train
+    else:
+    	acc_test, pred = sess.run([bi_lstm.accuracy,bi_lstm.label_out], feed_dict = feed_dict)
+    	return acc_test, pred , Y
 
 clr = FLAGS.learning_rate
 
@@ -129,7 +129,7 @@ with tf.Graph().as_default():
     with sess.as_default():
         bi_lstm = BiLSTM(num_hidden=FLAGS.num_hidden,
                 num_classes=FLAGS.num_classes,
-                voc_dim=voc_size,
+                voc_dim=vocsize,
                 emb_dim=FLAGS.embedding_dim,
                 sent_max_len = FLAGS.max_sent_length,
                 tag_voc_dim = tag_voc_size,
@@ -145,13 +145,13 @@ with tf.Graph().as_default():
         # Initialize all variables
         sess.run(tf.initialize_all_variables())
 
-        if pre_training:
-            sess.run(_weights['w_emb'].assign(pre_emb_w))
+        if FLAGS.pre_training:
+            sess.run(bi_lstm._weights['w_emb'].assign(pre_emb_w))
             if FLAGS.POS_emb in [1,2]:
-                sess.run(_weights['t_emb'].assign(pre_emb_t))
+                sess.run(bi_lstm._weights['t_emb'].assign(pre_emb_t))
 
         best_f1 = 0.0
-        for e in xrange(nepochs):
+        for e in xrange(FLAGS.num_epochs):
 
             # shuffle
             if FLAGS.POS_emb in [1,2]: shuffle([train_lex, train_tags, train_tags_uni, train_cue, train_y], 20)
@@ -163,9 +163,9 @@ with tf.Graph().as_default():
             tic = time.time()
             for i in xrange(len(train_lex)):
                 if FLAGS.POS_emb in [1,2]:
-                    acc_train = feeder(train_lex[i],train_cue[i],train_tags[i] if POS_emb == 1 else train_tags_uni[i], train_y[i])
+                    acc_train = feeder(bi_lstm, train_lex[i],train_cue[i],train_tags[i] if POS_emb == 1 else train_tags_uni[i], train_y[i])
                 else:
-                    acc_train = feeder(train_lex[i], train_cue[i], None, train_y[i])
+                    acc_train = feeder(bi_lstm, train_lex[i], train_cue[i], None, train_y[i])
                 # Calculating batch accuracy
                 train_tot_acc.append(acc_train)
                 print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex)),'completed in %.2f (sec) <<\r'%(time.time()-tic),
@@ -177,9 +177,9 @@ with tf.Graph().as_default():
             gold_dev = []
             for i in xrange(len(valid_lex)):
                 if FLAGS.POS_emb in [1,2]:
-                    acc_dev, pred, Y_dev = feeder(valid_lex[i],valid_cue[i],valid_tags[i] if POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
+                    acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],valid_tags[i] if POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
                 else:
-                    acc_dev, pred, Y_dev = feeder(valid_lex[i],valid_cue[i],None, valid_y[i],train=False)
+                    acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],None, valid_y[i],train=False)
                 dev_tot_acc.append(acc_dev)
                 pred_dev.append(pred[:len(valid_lex[i])])
                 gold_dev.append(Y_dev[:len(valid_lex[i])])
@@ -192,11 +192,11 @@ with tf.Graph().as_default():
                 print "Best f1 is: ",best_f1
                 be = e
                 # store the model
-                checkpoint_prefix = os.path.join(folder, "model")
+                checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                 saver.save(sess, checkpoint_prefix,global_step=be)
                 print "Model saved."
-                write_report(folder,rep_dev,cm_dev,'dev')
-                store_prediction(folder, valid_lex, dic_inv, pred_dev, gold_dev, 'dev')
+                write_report(checkpoint_dir, rep_dev, cm_dev, 'dev')
+                store_prediction(checkpoint_dir, valid_lex, dic_inv, pred_dev, gold_dev, 'dev')
                 dry = 0
             else:
                 dry += 1

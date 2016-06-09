@@ -46,15 +46,15 @@ class BiLSTM(object):
             'w_emb' : tf.Variable(0.2 * tf.random_uniform([voc_dim,emb_dim], minval=-1.0, maxval=1.0, dtype=tf.float32),name='w_emb',trainable=update),
             'c_emb' : random_uniform([3,emb_dim],'c_emb')
             }
-            if tags:
-                self._weights.update({'t_emb' : tf.Variable(0.2 * tf.random_uniform([tag_voc_dim,emb_dim], minval=-1.0, maxval=1.0, dtype=tf.float32),name='t_emb',trainable=update)})
-            else:
-                self._weights = {
+        if tags:
+            self._weights.update({'t_emb' : tf.Variable(0.2 * tf.random_uniform([tag_voc_dim,emb_dim], minval=-1.0, maxval=1.0, dtype=tf.float32),name='t_emb',trainable=update)})
+        else:
+            self._weights = {
                 'w_emb' : random_uniform([voc_dim, emb_dim],'w_emb'),
                 'c_emb' : random_uniform([3,emb_dim],'c_emb')
                 }
-                if tags:
-                    self._weights.update({'t_emb' : random_uniform([tag_voc_dim,emb_dim],'t_emb')})
+            if tags:
+                self._weights.update({'t_emb' : random_uniform([tag_voc_dim,emb_dim],'t_emb')})
 
         self._weights.update({
             'hidden_w': tf.Variable(tf.random_normal([emb_dim, 2*num_hidden])),
