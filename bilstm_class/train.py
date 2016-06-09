@@ -66,11 +66,6 @@ store_config(checkpoint_dir,FLAGS)
 # ==================================================
 
 # Load data
-# if not FLAGS.pre_training:
-#     train_set, dev_set, voc, voc_inv = int_processor.load_train_dev(FLAGS.scope_detection, FLAGS.event_detection, FLAGS.training_lang, out_dir)
-# else:
-#     train_set, dev_set, voc_inv, pre_emb_w, pre_emb_t = ext_processor.load_train_dev(FLAGS.scope_detection, FLAGS.event_detection, FLAGS.training_lang, FLAGS.embedding_dim, FLAGS.POS_emb)
-
 if not FLAGS.pre_training:
     train_set, valid_set, voc, dic_inv = int_processor.load_train_dev(FLAGS.scope_detection, FLAGS.event_detection, FLAGS.training_lang, out_dir)
     vocsize = len(voc['w2idxs'])
@@ -85,19 +80,6 @@ valid_lex, valid_tags, valid_tags_uni, valid_cue, _, valid_y = valid_set
 
 # Training
 # ==================================================
-
-# Decompose train and dev set
-# train_lex, train_tags, train_tags_uni, train_cue, train_scope, train_y = train_set
-# valid_lex, valid_tags, valid_tags_uni, valid_cue, valid_scope, valid_y = dev_set
-
-# Set vocsize for words and tags
-# if FLAGS.pre_training: voc_size = pre_emb_w.shape[0]
-# else: voc_size = len(voc['w2idxs'])
-# if FLAGS.POS_emb in [1,2]:
-#     if FLAGS.pre_training:
-#         tag_voc_size = pre_emb_t.shape[0]
-#     else: tag_voc_size = len(voc['t2idxs']) if FLAGS.POS_emb == 1 else len(voc['tuni2idxs'])
-# else: tag_voc_size = 0
 
 def feeder(_bilstm, lex, cue, tags, _y, train = True):
     X = padding(lex, FLAGS.max_sent_length, vocsize - 1)
@@ -163,7 +145,7 @@ with tf.Graph().as_default():
             tic = time.time()
             for i in xrange(len(train_lex)):
                 if FLAGS.POS_emb in [1,2]:
-                    acc_train = feeder(bi_lstm, train_lex[i],train_cue[i],train_tags[i] if POS_emb == 1 else train_tags_uni[i], train_y[i])
+                    acc_train = feeder(bi_lstm, train_lex[i],train_cue[i],train_tags[i] if FLAGS.POS_emb == 1 else train_tags_uni[i], train_y[i])
                 else:
                     acc_train = feeder(bi_lstm, train_lex[i], train_cue[i], None, train_y[i])
                 # Calculating batch accuracy
@@ -177,7 +159,7 @@ with tf.Graph().as_default():
             gold_dev = []
             for i in xrange(len(valid_lex)):
                 if FLAGS.POS_emb in [1,2]:
-                    acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],valid_tags[i] if POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
+                    acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],valid_tags[i] if FLAGS.POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
                 else:
                     acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],None, valid_y[i],train=False)
                 dev_tot_acc.append(acc_dev)
