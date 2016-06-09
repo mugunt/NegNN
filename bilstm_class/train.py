@@ -113,8 +113,8 @@ with tf.Graph().as_default():
         # Set the external matrices, if external flag is True
         if FLAGS.pre_training:
             sess.run(bi_lstm._weights['w_emb'].assign(pre_emb_w))
-            # if FLAGS.POS_emb in [1,2]:
-                # sess.run(bi_lstm._weights['t_emb'].assign(pre_emb_t))
+            if FLAGS.POS_emb in [1,2]:
+                sess.run(bi_lstm._weights['t_emb'].assign(pre_emb_t))
         try:
             best_f1 = 0.0
             be = 0
@@ -128,10 +128,10 @@ with tf.Graph().as_default():
                 for i in xrange(len(train_lex)):
                     X = padding(train_lex[i],FLAGS.max_sent_length,voc_size - 1)
                     C = padding(train_cue[i],FLAGS.max_sent_length,2)
-                    # if FLAGS.POS_emb == 1:
-                    #     T = padding(train_tags[i],FLAGS.max_sent_length,tag_voc_size - 1)
-                    # if FLAGS.POS_emb == 2:
-                    #     T = padding(train_tags_uni[i],FLAGS.max_sent_length,tag_voc_size - 1)
+                    if FLAGS.POS_emb == 1:
+                        T = padding(train_tags[i],FLAGS.max_sent_length,tag_voc_size - 1)
+                    if FLAGS.POS_emb == 2:
+                        T = padding(train_tags_uni[i],FLAGS.max_sent_length,tag_voc_size - 1)
                     Y = padding(np.asarray(map(lambda x: [1,0] if x == 0 else [0,1],train_y[i])).astype('int32'),FLAGS.max_sent_length,0,False)
                     _mask = [1 if _t!=voc_size else 0 for _t in X]
                     # build feed_dict
@@ -145,14 +145,14 @@ with tf.Graph().as_default():
                         bi_lstm.mask: _mask,
                         bi_lstm.lr: clr
                         }
-                    # if FLAGS.POS_emb in [1,2]:
-                    #     feed_dict.update({bi_lstm.t:T})
+                    if FLAGS.POS_emb in [1,2]:
+                        feed_dict.update({bi_lstm.t:T})
                     # run training
                     sess.run(optimizer,feed_dict = feed_dict)
                     accuracy = sess.run(bi_lstm.accuracy,feed_dict = feed_dict)
                     # normalization of embeddings if needed
-                    if FLAGS.normalize_emb:
-                        sess.run(bi_lstm.normalize_w_emb)
+                    # if FLAGS.normalize_emb:
+                    #     sess.run(bi_lstm.normalize_w_emb)
                         # if FLAGS.POS_emb in [1,2]: 
                         #     sess.run(bi_lstm.normalize_t_emb)
                     train_tot_acc.append(get_accuracy(accuracy,len(train_lex[i])))
@@ -165,10 +165,10 @@ with tf.Graph().as_default():
                     # pad the word and cue vector of the dev set with random shit
                     X_dev = padding(valid_lex[i],FLAGS.max_sent_length,voc_size - 1)
                     C_dev = padding(valid_cue[i],FLAGS.max_sent_length,2)
-                    # if FLAGS.POS_emb == 1:
-                    #     T_dev = padding(valid_tags[i],FLAGS.max_sent_length,tag_voc_size - 1)
-                    # if FLAGS.POS_emb == 2:
-                    #     T_dev = padding(valid_tags_uni[i],FLAGS.max_sent_length,tag_voc_size - 1)
+                    if FLAGS.POS_emb == 1:
+                        T_dev = padding(valid_tags[i],FLAGS.max_sent_length,tag_voc_size - 1)
+                    if FLAGS.POS_emb == 2:
+                        T_dev = padding(valid_tags_uni[i],FLAGS.max_sent_length,tag_voc_size - 1)
                     Y_dev = padding(np.asarray(map(lambda x: [1,0] if x == 0 else [0,1],valid_y[i])).astype('int32'),FLAGS.max_sent_length,0,False)
                     _mask_dev = [1 if t_d!=voc_size else 0 for t_d in X_dev]
                     feed_dict={
@@ -180,8 +180,8 @@ with tf.Graph().as_default():
                         bi_lstm.seq_len: np.asarray([len(valid_lex[i])]),
                         bi_lstm.mask: _mask_dev
                         }
-                    # if FLAGS.POS_emb in [1,2]:
-                    #     feed_dict.update({bi_lstm.t: T_dev})
+                    if FLAGS.POS_emb in [1,2]:
+                        feed_dict.update({bi_lstm.t: T_dev})
                     # get dev set accuracy
                     accuracy_dev,label_dev = sess.run([bi_lstm.accuracy,bi_lstm.label_out], feed_dict = feed_dict )
                     dev_tot_acc.append(get_accuracy(accuracy_dev,len(valid_lex[i])))

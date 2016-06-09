@@ -32,7 +32,7 @@ class BiLSTM(object):
         self.lr = tf.placeholder(tf.float32)
         self.x = tf.placeholder(tf.int32,name="input_x")
         self.c = tf.placeholder(tf.int32,name="input_c")
-        # if tags: self.t = tf.placeholder(tf.int32,name="input_t")
+        if tags: self.t = tf.placeholder(tf.int32,name="input_t")
         self.mask = tf.placeholder("float",name="input_mask")
 
         # Tensorflow LSTM cell requires 2x n_hidden length (state & cell)
@@ -46,36 +46,36 @@ class BiLSTM(object):
             'w_emb' : tf.Variable(0.2 * tf.random_uniform([voc_dim,emb_dim], minval=-1.0, maxval=1.0, dtype=tf.float32),name='w_emb',trainable=update),
             'c_emb' : random_uniform([3,emb_dim],'c_emb')
             }
-            # if tags:
-            #     self._weights.update({'t_emb' : tf.Variable(0.2 * tf.random_uniform([tag_voc_dim,emb_dim], minval=-1.0, maxval=1.0, dtype=tf.float32),name='t_emb',trainable=update)})
-            # else:
-            #     self._weights = {
-            #     'w_emb' : random_uniform([voc_dim, emb_dim],'w_emb'),
-            #     'c_emb' : random_uniform([3,emb_dim],'c_emb')
-            #     }
-            #     if tags:
-            #         self._weights.update({'t_emb' : random_uniform([tag_voc_dim,emb_dim],'t_emb')})
+            if tags:
+                self._weights.update({'t_emb' : tf.Variable(0.2 * tf.random_uniform([tag_voc_dim,emb_dim], minval=-1.0, maxval=1.0, dtype=tf.float32),name='t_emb',trainable=update)})
+            else:
+                self._weights = {
+                'w_emb' : random_uniform([voc_dim, emb_dim],'w_emb'),
+                'c_emb' : random_uniform([3,emb_dim],'c_emb')
+                }
+                if tags:
+                    self._weights.update({'t_emb' : random_uniform([tag_voc_dim,emb_dim],'t_emb')})
 
         self._weights.update({
             'hidden_w': tf.Variable(tf.random_normal([emb_dim, 2*num_hidden])),
             'hidden_c': tf.Variable(tf.random_normal([emb_dim, 2*num_hidden])),
             'out_w': tf.Variable(tf.random_normal([2*num_hidden, num_classes]))
                 })
-        # if tags:
-        #         self._weights.update({'hidden_t': tf.Variable(tf.random_normal([emb_dim, 2*num_hidden]))})
+        if tags:
+                self._weights.update({'hidden_t': tf.Variable(tf.random_normal([emb_dim, 2*num_hidden]))})
 
         self._biases = {
             'hidden_b': tf.Variable(tf.random_normal([2*num_hidden])),
             'out_b': tf.Variable(tf.random_normal([num_classes]))
         }
 
-        self.normalize_w_emb = tf.nn.l2_normalize(self._weights['w_emb'],1)
-        # if tags: self.normalize_t_emb = tf.nn.l2_normalize(self._weights['t_emb'],1)
+        # self.normalize_w_emb = tf.nn.l2_normalize(self._weights['w_emb'],1)
+        # # if tags: self.normalize_t_emb = tf.nn.l2_normalize(self._weights['t_emb'],1)
 
-        # if tags:
-        #     pred = self.BiLSTMgraph(self.x, self.c, self.t, self.istate_fw, self.istate_bw, self._weights, self._biases)
-        # else:
-        pred = self.BiLSTMgraph(self.x, self.c, None, self.istate_fw, self.istate_bw, self._weights, self._biases)
+        if tags:
+            pred = self.BiLSTMgraph(self.x, self.c, self.t, self.istate_fw, self.istate_bw, self._weights, self._biases)
+        else:
+            pred = self.BiLSTMgraph(self.x, self.c, None, self.istate_fw, self.istate_bw, self._weights, self._biases)
 
         pred_mod = [tf.matmul(item, self._weights['out_w']) + self._biases['out_b'] for item in pred]
         outputs = tf.squeeze(tf.pack(pred_mod))
@@ -89,17 +89,17 @@ class BiLSTM(object):
     def BiLSTMgraph(self, _X, _C, _T, _istate_fw, _istate_bw, _weights, _biases):
         # input: a [len_sent,len_seq] (e.g. 7x5)
         # transform into embeddings
-        # if _T:
-        #     emb_x = tf.nn.embedding_lookup(self._weights['w_emb'],_X)
-        #     emb_c = tf.nn.embedding_lookup(self._weights['c_emb'],_C)
-        #     emb_t = tf.nn.embedding_lookup(self._weights['t_emb'],_T)
-        #     # Linear activation
-        #     _X = tf.matmul(emb_x, self._weights['hidden_w']) + tf.matmul(emb_c, self._weights['hidden_c']) + tf.matmul(emb_t,self._weights['hidden_t']) + self._biases['hidden_b']
-        # else:
-        emb_x = tf.nn.embedding_lookup(self._weights['w_emb'],_X)
-        emb_c = tf.nn.embedding_lookup(self._weights['c_emb'],_C)
-        # Linear activation
-        _X = tf.matmul(emb_x, self._weights['hidden_w']) + tf.matmul(emb_c,self._weights['hidden_c']) + self._biases['hidden_b']
+        if _T:
+            emb_x = tf.nn.embedding_lookup(self._weights['w_emb'],_X)
+            emb_c = tf.nn.embedding_lookup(self._weights['c_emb'],_C)
+            emb_t = tf.nn.embedding_lookup(self._weights['t_emb'],_T)
+            # Linear activation
+            _X = tf.matmul(emb_x, self._weights['hidden_w']) + tf.matmul(emb_c, self._weights['hidden_c']) + tf.matmul(emb_t,self._weights['hidden_t']) + self._biases['hidden_b']
+        else:
+            emb_x = tf.nn.embedding_lookup(self._weights['w_emb'],_X)
+            emb_c = tf.nn.embedding_lookup(self._weights['c_emb'],_C)
+            # Linear activation
+            _X = tf.matmul(emb_x, self._weights['hidden_w']) + tf.matmul(emb_c,self._weights['hidden_c']) + self._biases['hidden_b']
 
         # Define lstm cells with tensorflow
         # Forward direction cell
