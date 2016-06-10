@@ -2,7 +2,7 @@
 
 class Sentence(list):
     def __init__(self,cue):
-        super(Sentences,self).__init__()
+        super(Sentence,self).__init__()
         # position of the cue in the Sentence
         self.cue = cue
 
@@ -19,7 +19,7 @@ class Omission(object):
         cosb,
         tag,
         word,
-        pos):
+        index):
 
         self.cosf = cosf
         self.cosb = cosb

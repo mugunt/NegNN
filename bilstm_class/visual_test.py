@@ -8,8 +8,8 @@ from NegNN.utils.metrics import *
 from NegNN.processors import int_processor
 from NegNN.processors import ext_processor
 from NegNN.visualization.visualize import Sentence, Omission, create_omission
-from scipy import dot, linalg
-
+#from scipy import dot, linalg
+from scipy.spatial.distance import cosine
 
 import tensorflow as tf
 import numpy as np
@@ -97,7 +97,6 @@ def feeder(_bilstm, lex, cue, tags, _y):
     matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
     forward_end = np.array(matrix_list[len(lex)-1][...,:200]).flatten()
     backward_end = np.array(matrix_list[0][...,200:]).flatten()
-    print forward_end.shape,backward_end.shape
     return forward_end, backward_end
 
 
@@ -133,20 +132,20 @@ with graph.as_default():
                 lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
             else:
                 fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
-		          lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],[],test_y[i])
+		lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],[],test_y[i])
             # create a list of subsentences where a word is discarded each time
             for j in xrange(len(lex_list)):
                 # get the forward and backward last state for each subsentence
-		        if tags_list != []:
+		if tags_list != []:
                     fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
                 else:
                     fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], [], y_list[j])
-		        cosf = dot(fm,fm_om.T)/linalg.norm(fm)/linalg.norm(fm_om)
-                cosb = dot(bw,bw_om.T)/linalg.norm(bw)/linalg.norm(bw_om)
+		cosf = cosine(fm,fm_om)
+                cosb = cosine(bw,bw_om)
                 # create omission objects
                 o_obj = Omission(cosf, cosb, dic_inv['idxs2t'][test_cue[i][j]],
                     dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else '<UNK>', j)
-                
+                sent_obj.append(o_obj)
             sent_obj.calculate_pos2cue()
             for tok in sent_obj:
                 print "%s\t%d\t%s\t%f\t%f\n" % (tok.word,tok.index,tok.tag,tok.cosf,tok.cosb)

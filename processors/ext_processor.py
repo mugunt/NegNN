@@ -119,7 +119,7 @@ def load_test(fn_test, scope, event, lang, emb_dim, universal):
 
         test_set = test_lex, test_tags, test_tags, test_cues, test_scope,test_y
 
-        return test_set, {'idxs2w':pre_w_voc_inv}, pre_w_emb, pre_t_emb
+        return test_set, {'idxs2w':pre_w_voc_inv, 'idxs2t':pre_t_voc_inv}, pre_w_emb, pre_t_emb
     else:
         test_set = test_lex, [], [], test_cues, test_scope,test_y
 
