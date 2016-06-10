@@ -94,10 +94,10 @@ def feeder(_bilstm, lex, cue, tags, _y):
         _bilstm.mask: _mask}
     if tags != []:
         feed_dict.update({_bilstm.t:T})
-    matrix_list = sess.run(_bilstm.outputs, feed_dict = feed_dict)
-    print matrix_list.shape()
-    forward_end = np.array(matrix_list[len(lex)-1][...,:200]).flatten()
-    backward_end = np.array(matrix_list[0][...,200:]).flatten()
+    matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
+    full_hidden = np.asarray(np.squeeze(matrix_list[:len(lex)]))
+    forward_end = full_hidden[...,199]
+    backward_end = full_hidden[...,-1]
     return forward_end, backward_end
 
 
@@ -141,9 +141,9 @@ with graph.as_default():
                     fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
                 else:
                     fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], [], y_list[j])
-		cosf = cosine(fm,fm_om)
-                cosb = cosine(bw,bw_om)
-                # create omission objects
+                cosf = cosine(fm,np.insert(fm_om,0.0,j))
+		cosb = cosine(bw,np.insert(bw_om,0.0,j))
+		# create omission objects
                 o_obj = Omission(cosf, cosb, dic_inv['idxs2t'][test_cue[i][j]],
                     dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else '<UNK>', j)
                 sent_obj.append(o_obj)
