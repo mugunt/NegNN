@@ -94,7 +94,8 @@ def feeder(_bilstm, lex, cue, tags, _y):
         _bilstm.mask: _mask}
     if tags != []:
         feed_dict.update({_bilstm.t:T})
-    matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
+    matrix_list = sess.run(_bilstm.outputs, feed_dict = feed_dict)
+    print matrix_list.shape()
     forward_end = np.array(matrix_list[len(lex)-1][...,:200]).flatten()
     backward_end = np.array(matrix_list[0][...,200:]).flatten()
     return forward_end, backward_end
