@@ -9,7 +9,7 @@ from NegNN.utils.tools import padding, unpickle_data
 from NegNN.utils.metrics import *
 from NegNN.processors import int_processor
 from NegNN.processors import ext_processor
-from NegNN.visualization.visualize import Sentence, Omission, create_omission
+# from NegNN.visualization.visualize import Sentence, Omission, create_omission
 #from scipy import dot, linalg
 from scipy.spatial.distance import cosine
 
@@ -97,11 +97,10 @@ def feeder(_bilstm, lex, cue, tags, _y):
     if tags != []:
         feed_dict.update({_bilstm.t:T})
     matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
-    forward_end = np.asarray(matrix_list[len(lex)-1][...,:200]).flatten()
-    backward_end = np.asarray(matrix_list[0][...,200:]).flatten()
-    #accuracy = sess.run(_bilstm.accuracy, feed_dict = feed_dict)[:len(lex)]
-    return forward_end, backward_end
-    #return accuracy
+    return sorted([[(v,i) for i,v in enumerate(item)] for item in matrix_list])
+    # forward_end = np.asarray(matrix_list[len(lex)-1][...,:200]).flatten()
+    # backward_end = np.asarray(matrix_list[0][...,200:]).flatten()
+    # return forward_end, backward_end
 
 graph = tf.Graph()
 with graph.as_default():
@@ -129,36 +128,10 @@ with graph.as_default():
         preds_test, gold_test = [],[]
         for i in xrange(len(test_lex)):
             # create a sentence object for the current sentence
-            sent_obj = Sentence([c_idx for c_idx,c in enumerate(test_cue[i]) if c == 1])
             if POS_emb in [1,2]:
-                fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
-                #accuracy = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
-		lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+                activation = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
             else:
-                fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
-		#accuracy = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
-		lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],[],test_y[i])
-            # create a list of subsentences where a word is discarded each time
-            for j in xrange(len(lex_list)):
-                # get the forward and backward last state for each subsentence
-		#print [dic_inv['idxs2w'][w] if w in dic_inv['idxs2w'] else '<UNK>' for w in lex_list[j]]
-		if tags_list != []:
-                    fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
-                    #acc_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
-		else:
-                    fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], [], y_list[j])
-		    #acc_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
-                cosf = cosine(fm,fm_om)
-		cosb = cosine(bw,bw_om)
-		#acc_diff = (len([x for x in accuracy if x==True])/len(accuracy))
-		#print acc_diff
-		#print (len([x for x in acc_om if x==True])/len(acc_om))
-		#print acc_om
-		#create omission objects
-                o_obj = Omission(cosf, cosb, dic_inv['idxs2t'][test_cue[i][j]],
-                    dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else '<UNK>', j)
-                sent_obj.append(o_obj)
-            sent_obj.calculate_pos2cue()
-            for tok in sent_obj:
-                print "%s\t%d\t%s\t%f\t%f\n" % (tok.word,tok.index,tok.tag,tok.cosf,tok.cosb)
-            print
+                activation = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
+            for j,row in enumerate(activation):
+                print dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else "<UNK>",
+                print activation[:10]

@@ -78,9 +78,9 @@ class BiLSTM(object):
             self.pred = self.BiLSTMgraph(self.x, self.c, None, self.istate_fw, self.istate_bw, self._weights, self._biases)
 
         pred_mod = [tf.matmul(item, self._weights['out_w']) + self._biases['out_b'] for item in self.pred]
-        self.outputs = tf.squeeze(tf.pack(pred_mod))
+        outputs = tf.squeeze(tf.pack(pred_mod))
 
-        self.loss = tf.reduce_sum(tf.mul(tf.nn.softmax_cross_entropy_with_logits(self.outputs, self.y),self.mask))/tf.reduce_sum(self.mask) # softmax
+        self.loss = tf.reduce_sum(tf.mul(tf.nn.softmax_cross_entropy_with_logits(outputs, self.y),self.mask))/tf.reduce_sum(self.mask) # softmax
 
         self.label_out = tf.nn.softmax(self.outputs,name="predictions")
 
