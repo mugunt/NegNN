@@ -82,7 +82,7 @@ class BiLSTM(object):
 
         self.loss = tf.reduce_sum(tf.mul(tf.nn.softmax_cross_entropy_with_logits(outputs, self.y),self.mask))/tf.reduce_sum(self.mask) # softmax
 
-        self.label_out = tf.nn.softmax(self.outputs,name="predictions")
+        self.label_out = tf.nn.softmax(outputs,name="predictions")
 
         self.accuracy = tf.equal(tf.argmax(self.label_out,1), tf.argmax(self.y,1),name="accuracy")
 

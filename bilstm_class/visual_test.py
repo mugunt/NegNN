@@ -18,6 +18,7 @@ import numpy as np
 import codecs
 import sys
 import os
+import json
 
 
 # Parameters
@@ -97,10 +98,7 @@ def feeder(_bilstm, lex, cue, tags, _y):
     if tags != []:
         feed_dict.update({_bilstm.t:T})
     matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
-    return sorted([[(v,i) for i,v in enumerate(item)] for item in matrix_list])
-    # forward_end = np.asarray(matrix_list[len(lex)-1][...,:200]).flatten()
-    # backward_end = np.asarray(matrix_list[0][...,200:]).flatten()
-    # return forward_end, backward_end
+    return np.squeeze(matrix_list[:len(lex)])
 
 graph = tf.Graph()
 with graph.as_default():
@@ -124,14 +122,18 @@ with graph.as_default():
         saver.restore(sess,checkpoint_file)
         print "Model restored!"
         # Collect the predictions here
-        test_tot_acc = []
-        preds_test, gold_test = [],[]
+	json_obj = {}
         for i in xrange(len(test_lex)):
             # create a sentence object for the current sentence
             if POS_emb in [1,2]:
                 activation = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
             else:
                 activation = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
-            for j,row in enumerate(activation):
-                print dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else "<UNK>",
-                print activation[:10]
+            json_obj[i] = {}
+            json_obj[i]['tokens'] = [dic_inv['idxs2w'][j] if j in dic_inv['idxs2w'] else '<UNK>' for j in test_lex[i]]
+	    json_obj[i]['cues'] = test_cue[i].tolist()
+            json_obj[i]['activation'] = activation.tolist()
+        #Store json obj
+	with open('NegNN/visualization/sents_bilstm.json','w') as outfile:
+	    json.dump(json_obj,outfile)
+	print "Json file stored in /visualization"
