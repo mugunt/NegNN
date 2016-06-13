@@ -1,5 +1,7 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
+from __future__ import division
+
 
 from bilstm import BiLSTM
 from random import shuffle
@@ -95,11 +97,11 @@ def feeder(_bilstm, lex, cue, tags, _y):
     if tags != []:
         feed_dict.update({_bilstm.t:T})
     matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
-    full_hidden = np.asarray(np.squeeze(matrix_list[:len(lex)]))
-    forward_end = full_hidden[...,199]
-    backward_end = full_hidden[...,-1]
+    forward_end = np.asarray(matrix_list[len(lex)-1][...,:200]).flatten()
+    backward_end = np.asarray(matrix_list[0][...,200:]).flatten()
+    #accuracy = sess.run(_bilstm.accuracy, feed_dict = feed_dict)[:len(lex)]
     return forward_end, backward_end
-
+    #return accuracy
 
 graph = tf.Graph()
 with graph.as_default():
@@ -130,20 +132,29 @@ with graph.as_default():
             sent_obj = Sentence([c_idx for c_idx,c in enumerate(test_cue[i]) if c == 1])
             if POS_emb in [1,2]:
                 fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
-                lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+                #accuracy = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+		lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
             else:
                 fm, bw = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
+		#accuracy = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
 		lex_list,cues_list,tags_list,y_list = create_omission(test_lex[i],test_cue[i],[],test_y[i])
             # create a list of subsentences where a word is discarded each time
             for j in xrange(len(lex_list)):
                 # get the forward and backward last state for each subsentence
+		#print [dic_inv['idxs2w'][w] if w in dic_inv['idxs2w'] else '<UNK>' for w in lex_list[j]]
 		if tags_list != []:
                     fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
-                else:
+                    #acc_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
+		else:
                     fm_om, bw_om = feeder(bi_lstm, lex_list[j], cues_list[j], [], y_list[j])
-                cosf = cosine(fm,np.insert(fm_om,0.0,j))
-		cosb = cosine(bw,np.insert(bw_om,0.0,j))
-		# create omission objects
+		    #acc_om = feeder(bi_lstm, lex_list[j], cues_list[j], tags_list[j], y_list[j])
+                cosf = cosine(fm,fm_om)
+		cosb = cosine(bw,bw_om)
+		#acc_diff = (len([x for x in accuracy if x==True])/len(accuracy))
+		#print acc_diff
+		#print (len([x for x in acc_om if x==True])/len(acc_om))
+		#print acc_om
+		#create omission objects
                 o_obj = Omission(cosf, cosb, dic_inv['idxs2t'][test_cue[i][j]],
                     dic_inv['idxs2w'][test_lex[i][j]] if test_lex[i][j] in dic_inv['idxs2w'] else '<UNK>', j)
                 sent_obj.append(o_obj)
