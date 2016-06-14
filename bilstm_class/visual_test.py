@@ -63,19 +63,19 @@ test_files = FLAGS.test_set.split(',')
 
 if not pre_training:
 	assert FLAGS.test_lang == tr_lang
-    	_, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
-    	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
+	_, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
+   	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
 else:
-    	test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
-        test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
+    test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
+    test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
 
 
 if pre_training:
-    	vocsize = pre_emb_w.shape[0]
-        tag_voc_size = pre_emb_t.shape[0]
+    vocsize = pre_emb_w.shape[0]
+    tag_voc_size = pre_emb_t.shape[0]
 else:
-        vocsize = len(voc['w2idxs'])
-        tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
+    vocsize = len(voc['w2idxs'])
+    tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
 
 # Evaluation
 # ==================================================
@@ -97,8 +97,13 @@ def feeder(_bilstm, lex, cue, tags, _y):
         _bilstm.mask: _mask}
     if tags != []:
         feed_dict.update({_bilstm.t:T})
-    matrix_list = sess.run(_bilstm.pred, feed_dict = feed_dict)
-    return np.squeeze(matrix_list[:len(lex)])
+    output_matrix = sess.run(_bilstm.pred, feed_dict = feed_dict)
+    return np.squeeze(output_matrix[:len(lex)])
+
+def weight_diff(_bilstm,sess):	
+    out_weights = _bilstm._weights['out_w'].eval(session=sess)
+    print out_weights
+    print [abs(a-b) for a,b in out_weights]
 
 graph = tf.Graph()
 with graph.as_default():
@@ -115,25 +120,26 @@ with graph.as_default():
                 tags = True if POS_emb in [1,2] else False,
                 external = pre_training,
                 update = emb_update)
-        saver = tf.train.Saver(tf.all_variables())
+    saver = tf.train.Saver(tf.all_variables())
 
-        # load model from last checkpoint
-        checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-        saver.restore(sess,checkpoint_file)
-        print "Model restored!"
-        # Collect the predictions here
-	json_obj = {}
-        for i in xrange(len(test_lex)):
-            # create a sentence object for the current sentence
-            if POS_emb in [1,2]:
-                activation = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
-            else:
-                activation = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
+    # load model from last checkpoint
+    checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
+    saver.restore(sess,checkpoint_file)
+    print "Model restored!"
+    # Get weights diff
+    json_obj = {'out_weight': weight_diff(bi_lstm,sess)}
+    # Collect the predictions here
+    for i in xrange(len(test_lex)):
+    	# create a sentence object for the current sentence
+        if POS_emb in [1,2]:
+	    activation = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+        else:
+            activation = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
             json_obj[i] = {}
             json_obj[i]['tokens'] = [dic_inv['idxs2w'][j] if j in dic_inv['idxs2w'] else '<UNK>' for j in test_lex[i]]
 	    json_obj[i]['cues'] = test_cue[i].tolist()
             json_obj[i]['activation'] = activation.tolist()
-        #Store json obj
-	with open('NegNN/visualization/sents_bilstm.json','w') as outfile:
-	    json.dump(json_obj,outfile)
-	print "Json file stored in /visualization"
+    #Store json obj
+    with open('NegNN/visualization/sents_bilstm.json','w') as outfile:
+    	json.dump(json_obj,outfile)
+    print "Json file stored in /visualization"
