@@ -102,8 +102,7 @@ def feeder(_bilstm, lex, cue, tags, _y):
 
 def weight_diff(_bilstm,sess):	
     out_weights = _bilstm._weights['out_w'].eval(session=sess)
-    print out_weights
-    print [abs(a-b) for a,b in out_weights]
+    return [unicode(abs(a-b)) for a,b in out_weights]
 
 graph = tf.Graph()
 with graph.as_default():
