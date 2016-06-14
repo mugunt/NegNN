@@ -126,7 +126,8 @@ with graph.as_default():
     saver.restore(sess,checkpoint_file)
     print "Model restored!"
     # Get weights diff
-    json_obj = {'out_weight': weight_diff(bi_lstm,sess)}
+    json_obj = {}
+    json_obj['out_weight'] = weight_diff(bi_lstm,sess)
     # Collect the predictions here
     for i in xrange(len(test_lex)):
     	# create a sentence object for the current sentence
@@ -134,10 +135,10 @@ with graph.as_default():
 	    activation = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
         else:
             activation = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
-            json_obj[i] = {}
-            json_obj[i]['tokens'] = [dic_inv['idxs2w'][j] if j in dic_inv['idxs2w'] else '<UNK>' for j in test_lex[i]]
-	    json_obj[i]['cues'] = test_cue[i].tolist()
-            json_obj[i]['activation'] = activation.tolist()
+        json_obj[i] = {}
+        json_obj[i]['tokens'] = [dic_inv['idxs2w'][j] if j in dic_inv['idxs2w'] else '<UNK>' for j in test_lex[i]]
+	json_obj[i]['cues'] = test_cue[i].tolist()
+        json_obj[i]['activation'] = activation.tolist()
     #Store json obj
     with open('NegNN/visualization/sents_bilstm.json','w') as outfile:
     	json.dump(json_obj,outfile)
