@@ -10,8 +10,8 @@ def data2sents(sets,look_event,look_scope,lang):
         f = codecs.open('NegNN/data/uni_pos_map/%s.txt' % lang,'rb','utf8').readlines()
         for line in f:
             spl = line.strip().split('\t')
-            _pos = spl[0].split('|')
-            for _p in _pos: mapping.update({_p:spl[1]})
+            _pos = spl[0].split('|')[0]
+            mapping.update({_pos:spl[1]})
         return mapping
     def segment(word,is_cue):
         _prefix_one = ['a']
