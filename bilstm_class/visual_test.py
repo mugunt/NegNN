@@ -102,7 +102,7 @@ def feeder(_bilstm, lex, cue, tags, _y):
 
 def weight_diff(_bilstm,sess):	
     out_weights = _bilstm._weights['out_w'].eval(session=sess)
-    return [unicode(abs(a-b)) for a,b in out_weights]
+    return [unicode(a-b) for a,b in out_weights]
 
 graph = tf.Graph()
 with graph.as_default():
@@ -137,6 +137,12 @@ with graph.as_default():
             activation = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
         json_obj[i] = {}
         json_obj[i]['tokens'] = [dic_inv['idxs2w'][j] if j in dic_inv['idxs2w'] else '<UNK>' for j in test_lex[i]]
+	json_obj[i]['scopes'] = test_y[i].tolist()
+	if POS_emb == 1:
+		json_obj[i]['tags'] = [dic_inv['idxs2t'][j] if j in dic_inv['idxs2t'] else '<UNK>' for j in test_tags[i]]
+	elif POS_emb == 2:
+		json_obj[i]['tags'] = [dic_inv['idxs2t'][j] if j in dic_inv['idxs2t'] else '<UNK>' for j in test_tags_uni[i]]
+	else: json_obj[i]['tags'] = []
 	json_obj[i]['cues'] = test_cue[i].tolist()
         json_obj[i]['activation'] = activation.tolist()
     #Store json obj
