@@ -129,6 +129,7 @@ with graph.as_default():
     json_obj = {}
     json_obj['out_weight'] = weight_diff(bi_lstm,sess)
     # Collect the predictions here
+    print dic_inv['idxs2t']
     for i in xrange(len(test_lex)):
     	# create a sentence object for the current sentence
         if POS_emb in [1,2]:

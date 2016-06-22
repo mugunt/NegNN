@@ -71,7 +71,7 @@ def load_train_dev(scope, event, lang, emb_dim, universal):
         pre_t_emb, pre_t_voc, pre_t_voc_inv = load_tags(universal)
         # pad embedding with an <UNK> and a <PAD> vector
         pre_t_emb = pad_embeddings(pre_t_emb,emb_dim)
-
+	
         if universal == 1:
             tags_idxs = [np.array([get_index(t,pre_t_voc, pre_t_emb.shape[0]) for t in tag_sent],dtype=np.int32) for tag_sent in tags]
         elif universal == 2:
@@ -113,7 +113,7 @@ def load_test(fn_test, scope, event, lang, emb_dim, universal):
         pre_t_emb = pad_embeddings(pre_t_emb,emb_dim)
 
         if universal == 1:
-            test_tags = [np.array([get_index(t,pre_t_voc, pre_t_emb.shape[0]) for t in tag_sent],dtype=np.int32) for tag_sent in tags_uni]
+            test_tags = [np.array([get_index(t,pre_t_voc, pre_t_emb.shape[0]) for t in tag_sent],dtype=np.int32) for tag_sent in tags]
         elif universal == 2:
             test_tags = [np.array([get_index(t,pre_t_voc, pre_t_emb.shape[0]) for t in tag_sent],dtype=np.int32) for tag_sent in tags_uni]
 
