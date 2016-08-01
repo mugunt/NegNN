@@ -56,19 +56,19 @@ test_files = FLAGS.test_set.split(',')
 # ==================================================
 
 if not pre_training:
-        assert FLAGS.test_lang == tr_lang
-        _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
+    assert FLAGS.test_lang == tr_lang
+    _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
 	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
 else:
-	test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
-        test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
+    test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
+    test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
 
 if pre_training:
 	vocsize = pre_emb_w.shape[0]
-        tag_voc_size = pre_emb_t.shape[0]
+    tag_voc_size = pre_emb_t.shape[0]
 else:
-        vocsize = len(voc['w2idxs'])
-        tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
+    vocsize = len(voc['w2idxs'])
+    tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
 
 # Evaluation
 # ==================================================

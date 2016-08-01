@@ -69,7 +69,7 @@ store_config(checkpoint_dir,FLAGS)
 
 # Load data
 if not FLAGS.pre_training:
-    train_set, valid_set, voc, dic_inv = int_processor.load_train_dev(FLAGS.scope_detection, FLAGS.event_detection, FLAGS.training_lang, out_dir)
+    train_set, valid_set, voc, dic_inv = int_processor.load_train_dev(FLAGS.scope_detection, FLAGS.event_detection, FLAGS.training_lang, checkpoint_dir)
     vocsize = len(voc['w2idxs'])
     tag_voc_size = len(voc['t2idxs']) if FLAGS.POS_emb == 1 else len(voc['tuni2idxs'])
 else:
