@@ -7,12 +7,14 @@ from NegNN.utils.tools import shuffle, padding
 from NegNN.utils.metrics import *
 from NegNN.processors import int_processor
 from NegNN.processors import ext_processor
+
+
 import tensorflow as tf
 import sys
 import os
 import time
 import codecs
-
+import numpy as np
 
 # Parameters
 # ==================================================
@@ -102,8 +104,8 @@ def feeder(_bilstm, lex, cue, tags, _y, train = True):
         feed_dict.update({_bilstm.t:T})
     if train:
     	feed_dict.update({_bilstm.lr:clr})
-    	_, acc_train = sess.run([optimizer, bi_lstm.accuracy], feed_dict = feed_dict)
-    	return acc_train
+    	_, loss_train = sess.run([optimizer, bi_lstm.loss], feed_dict = feed_dict)
+    	return loss_train
     else:
     	acc_test, pred = sess.run([bi_lstm.accuracy,bi_lstm.label_out], feed_dict = feed_dict)
     	return acc_test, pred , Y
@@ -136,6 +138,8 @@ with tf.Graph().as_default():
             if FLAGS.POS_emb in [1,2]:
                 sess.run(bi_lstm._weights['t_emb'].assign(pre_emb_t))
 
+        train_tot_loss = []
+        dev_tot_acc = []
         best_f1 = 0.0
         for e in xrange(FLAGS.num_epochs):
 
@@ -144,19 +148,20 @@ with tf.Graph().as_default():
             else: shuffle([train_lex,train_cue,train_y], 20)
 
             # TRAINING STEP
-            train_tot_acc = []
+            train_step_loss = []
             dev_tot_acc = []
             tic = time.time()
             for i in xrange(len(train_lex)):
                 if FLAGS.POS_emb in [1,2]:
-                    acc_train = feeder(bi_lstm, train_lex[i],train_cue[i], train_tags[i] if FLAGS.POS_emb == 1 else train_tags_uni[i], train_y[i])
+                    loss_train = feeder(bi_lstm, train_lex[i],train_cue[i], train_tags[i] if FLAGS.POS_emb == 1 else train_tags_uni[i], train_y[i])
                 else:
-                    acc_train = feeder(bi_lstm, train_lex[i], train_cue[i], [], train_y[i])
+                    loss_train = feeder(bi_lstm, train_lex[i], train_cue[i], [], train_y[i])
                 # Calculating batch accuracy
-                train_tot_acc.append(acc_train)
+                train_step_loss.append(loss_train)
                 print '[learning] epoch %i >> %2.2f%%'%(e,(i+1)*100./len(train_lex)),'completed in %.2f (sec) <<\r'%(time.time()-tic),
-                sys.stdout.flush()               
-            print "TRAINING MEAN ACCURACY: ", sum(train_tot_acc)/len(train_lex)
+                sys.stdout.flush()
+            train_tot_loss.append(sum(train_step_loss)/len(train_step_loss))
+            print "TRAINING MEAN LOSS: ", train_tot_loss[e]
 
             # DEVELOPMENT STEP
             pred_dev = []
@@ -166,11 +171,14 @@ with tf.Graph().as_default():
                     acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i],valid_tags[i] if FLAGS.POS_emb == 1 else valid_tags_uni[i],valid_y[i],train=False)
                 else:
                     acc_dev, pred, Y_dev = feeder(bi_lstm, valid_lex[i],valid_cue[i], [], valid_y[i],train=False)
-                dev_tot_acc.append(acc_dev)
                 pred_dev.append(pred[:len(valid_lex[i])])
                 gold_dev.append(Y_dev[:len(valid_lex[i])])
-            print 'DEV MEAN ACCURACY: ',sum(dev_tot_acc)/len(valid_lex)
-            f1,rep_dev,cm_dev = get_eval(pred_dev,gold_dev)
+            f1,rep_dev,cm_dev,f1_pos = get_eval(pred_dev,gold_dev)
+            dev_tot_acc.append(f1_pos)
+
+            # STORE TRAINING LOSS AND DEV ACCURACIES
+            numpy.save(os.path.join(checkpoint_dir,'train_loss.npy'),train_tot_loss)
+            numpy.save(os.path.join(checkpoint_dir,'valid_acc.npy'),dev_tot_acc)
 
             # STORE INTERMEDIATE RESULTS
             if f1 > best_f1:

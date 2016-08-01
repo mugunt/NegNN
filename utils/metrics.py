@@ -18,7 +18,9 @@ def get_eval(predictions,gs):
     p,r,f1,s =  metrics.precision_recall_fscore_support(y_,y)
     report = "%s\n%s\n%s\n%s\n\n" % (str(p),str(r),str(f1),str(s)) 
 
-    return numpy.average(f1,weights=s),report,cm
+    f1_pos = f1[0]
+
+    return numpy.average(f1,weights=s),report,cm,f1_pos
 
 def write_report(folder, report, cm, name):
     print "Storing reports..."           
