@@ -1,5 +1,7 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
+from __future__ import division
+
 
 from bilstm import BiLSTM
 from random import shuffle
@@ -7,12 +9,16 @@ from NegNN.utils.tools import padding, unpickle_data
 from NegNN.utils.metrics import *
 from NegNN.processors import int_processor
 from NegNN.processors import ext_processor
+# from NegNN.visualization.visualize import Sentence, Omission, create_omission
+#from scipy import dot, linalg
+from scipy.spatial.distance import cosine
 
 import tensorflow as tf
 import numpy as np
 import codecs
 import sys
 import os
+import json
 
 
 # Parameters
@@ -56,24 +62,25 @@ test_files = FLAGS.test_set.split(',')
 # ==================================================
 
 if not pre_training:
-        assert FLAGS.test_lang == tr_lang
-        _, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
-	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
+	assert FLAGS.test_lang == tr_lang
+	_, _, voc, dic_inv = unpickle_data(FLAGS.checkpoint_dir)
+   	test_lex, test_tags, test_tags_uni, test_cue, _, test_y = int_processor.load_test(test_files, voc, scope_dect, event_dect, FLAGS.test_lang)
 else:
-	test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
-        test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
+    test_set, dic_inv, pre_emb_w, pre_emb_t = ext_processor.load_test(test_files, scope_dect, event_dect, FLAGS.test_lang, embedding_dim, POS_emb)
+    test_lex, test_tags, test_tags_uni, test_cue, _, test_y = test_set
+
 
 if pre_training:
-	vocsize = pre_emb_w.shape[0]
-        tag_voc_size = pre_emb_t.shape[0]
+    vocsize = pre_emb_w.shape[0]
+    tag_voc_size = pre_emb_t.shape[0]
 else:
-        vocsize = len(voc['w2idxs'])
-        tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
+    vocsize = len(voc['w2idxs'])
+    tag_voc_size = len(voc['t2idxs']) if POS_emb == 1 else len(voc['tuni2idxs'])
 
 # Evaluation
 # ==================================================
 
-def feeder(_bilstm, lex, cue, tags, _y, train = True):
+def feeder(_bilstm, lex, cue, tags, _y):
     X = padding(lex, max_sent_length, vocsize - 1)
     C = padding(cue, max_sent_length, 2)
     if tags != []:
@@ -90,20 +97,16 @@ def feeder(_bilstm, lex, cue, tags, _y, train = True):
         _bilstm.mask: _mask}
     if tags != []:
         feed_dict.update({_bilstm.t:T})
-    if train:
-        feed_dict.update({_bilstm.lr:clr})
-        _, acc_train = sess.run([optimizer, bi_lstm.accuracy], feed_dict = feed_dict)
-        return acc_train
-    else:
-        acc_test, pred = sess.run([bi_lstm.accuracy,bi_lstm.label_out], feed_dict = feed_dict)
-        return acc_test, pred , Y
+    output_matrix = sess.run(_bilstm.pred, feed_dict = feed_dict)
+    return np.squeeze(output_matrix[:len(lex)])
 
+def weight_diff(_bilstm,sess):	
+    out_weights = _bilstm._weights['out_w'].eval(session=sess)
+    return [unicode(a-b) for a,b in out_weights]
 
 graph = tf.Graph()
 with graph.as_default():
-    # session_conf = tf.ConfigProto(
-    #   allow_soft_placement=allow_soft_placement,
-    #   log_device_placement=log_device_placement)
+
     sess = tf.Session()
     with sess.as_default():
         bi_lstm = BiLSTM(
@@ -116,28 +119,34 @@ with graph.as_default():
                 tags = True if POS_emb in [1,2] else False,
                 external = pre_training,
                 update = emb_update)
-        saver = tf.train.Saver(tf.all_variables())
-        # saver.restore(sess, checkpoint_file)
-        # print "Model restored!"
+    saver = tf.train.Saver(tf.all_variables())
 
-        # load model from last checkpoint
-        checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-        saver.restore(sess,checkpoint_file)
-        print "Model restored!"
-        # Collect the predictions here
-        test_tot_acc = []
-        preds_test, gold_test = [],[]
-        for i in xrange(len(test_lex)):
-            if POS_emb in [1,2]:
-                acc_test, pred_test, Y_test = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i], train = False)
-            else:
-                acc_test, pred_test, Y_test = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False)
-            test_tot_acc.append(acc_test)
-            # get prediction softmax
-            preds_test.append(pred_test[:len(test_lex[i])])
-            gold_test.append(Y_test[:len(test_lex[i])])
-        print 'Mean test accuracy: ', sum(test_tot_acc)/len(test_lex)
-        _,report_tst,best_test = get_eval(preds_test,gold_test)
-
-        write_report(FLAGS.checkpoint_dir,report_tst,best_test,FLAGS.test_name)
-        store_prediction(FLAGS.checkpoint_dir, test_lex, dic_inv, preds_test, gold_test,FLAGS.test_name)
+    # load model from last checkpoint
+    checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
+    saver.restore(sess,checkpoint_file)
+    print "Model restored!"
+    # Get weights diff
+    json_obj = {}
+    json_obj['out_weight'] = weight_diff(bi_lstm,sess)
+    # Collect the predictions here
+    print dic_inv['idxs2t']
+    for i in xrange(len(test_lex)):
+    	# create a sentence object for the current sentence
+        if POS_emb in [1,2]:
+	    activation = feeder(bi_lstm, test_lex[i], test_cue[i], test_tags[i] if POS_emb == 1 else test_tags_uni[i],test_y[i])
+        else:
+            activation = feeder(bi_lstm, test_lex[i], test_cue[i], [], test_y[i], train = False, visualize = True)
+        json_obj[i] = {}
+        json_obj[i]['tokens'] = [dic_inv['idxs2w'][j] if j in dic_inv['idxs2w'] else '<UNK>' for j in test_lex[i]]
+	json_obj[i]['scopes'] = test_y[i].tolist()
+	if POS_emb == 1:
+		json_obj[i]['tags'] = [dic_inv['idxs2t'][j] if j in dic_inv['idxs2t'] else '<UNK>' for j in test_tags[i]]
+	elif POS_emb == 2:
+		json_obj[i]['tags'] = [dic_inv['idxs2t'][j] if j in dic_inv['idxs2t'] else '<UNK>' for j in test_tags_uni[i]]
+	else: json_obj[i]['tags'] = []
+	json_obj[i]['cues'] = test_cue[i].tolist()
+        json_obj[i]['activation'] = activation.tolist()
+    #Store json obj
+    with open('NegNN/visualization/sents_bilstm.json','w') as outfile:
+    	json.dump(json_obj,outfile)
+    print "Json file stored in /visualization"
