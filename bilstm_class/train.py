@@ -1,12 +1,12 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
-#from utils.tools import shuffle, padding
+from tools import shuffle, padding
 from bilstm import BiLSTM
 # from random import shuffle
 
-from NegNN.utils.metrics import *
-from NegNN.processors import int_processor
-from NegNN.processors import ext_processor
+from metrics import *
+import int_processor
+import ext_processor
 import tensorflow as tf
 import sys
 import os
