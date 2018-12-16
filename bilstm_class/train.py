@@ -1,6 +1,6 @@
 # -*-coding:utf-8-*-
 #! /usr/bin/env python
-from NegNN.utils.tools import shuffle, padding
+from utils.tools import shuffle, padding
 from bilstm import BiLSTM
 # from random import shuffle
 
