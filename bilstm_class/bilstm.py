@@ -1,6 +1,6 @@
 #-*- coding: utf-8-*-
 import tensorflow as tf
-from tensorflow.models.rnn import rnn, rnn_cell
+from tensorflow.python.ops import rnn, rnn_cell
 from NegNN.utils.metrics import *
 from NegNN.utils.tools import *
 
