@@ -1,8 +1,8 @@
 #-*- coding: utf-8-*-
 import tensorflow as tf
 from tensorflow.python.ops import rnn, rnn_cell
-from NegNN.utils.metrics import *
-from NegNN.utils.tools import *
+from metrics import *
+from tools import *
 
 import numpy
 import random
